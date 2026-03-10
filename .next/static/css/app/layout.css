@@ -692,11 +692,17 @@ video {
 .w-10{
   width: 2.5rem;
 }
+.w-full{
+  width: 100%;
+}
 .min-w-0{
   min-width: 0px;
 }
 .max-w-5xl{
   max-width: 64rem;
+}
+.max-w-md{
+  max-width: 28rem;
 }
 .max-w-xl{
   max-width: 36rem;
@@ -824,6 +830,10 @@ video {
   --tw-bg-opacity: 1;
   background-color: rgb(224 242 254 / var(--tw-bg-opacity, 1));
 }
+.bg-sky-50{
+  --tw-bg-opacity: 1;
+  background-color: rgb(240 249 255 / var(--tw-bg-opacity, 1));
+}
 .bg-slate-100{
   --tw-bg-opacity: 1;
   background-color: rgb(241 245 249 / var(--tw-bg-opacity, 1));
@@ -846,6 +856,9 @@ video {
 }
 .p-6{
   padding: 1.5rem;
+}
+.p-8{
+  padding: 2rem;
 }
 .px-2{
   padding-left: 0.5rem;
@@ -899,6 +912,10 @@ video {
   font-size: 1.5rem;
   line-height: 2rem;
 }
+.text-3xl{
+  font-size: 1.875rem;
+  line-height: 2.25rem;
+}
 .text-lg{
   font-size: 1.125rem;
   line-height: 1.75rem;
@@ -942,6 +959,10 @@ video {
 .text-orange-600{
   --tw-text-opacity: 1;
   color: rgb(234 88 12 / var(--tw-text-opacity, 1));
+}
+.text-red-500{
+  --tw-text-opacity: 1;
+  color: rgb(239 68 68 / var(--tw-text-opacity, 1));
 }
 .text-sky-600{
   --tw-text-opacity: 1;
@@ -1033,11 +1054,6 @@ body{
 .hover\:text-sky-600:hover{
   --tw-text-opacity: 1;
   color: rgb(2 132 199 / var(--tw-text-opacity, 1));
-}
-
-.hover\:text-sky-700:hover{
-  --tw-text-opacity: 1;
-  color: rgb(3 105 161 / var(--tw-text-opacity, 1));
 }
 
 .hover\:underline:hover{
