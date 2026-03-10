@@ -1,0 +1,39 @@
+@import url('https://fonts.googleapis.com/css2?family=Comfortaa:wght@400;600;700&family=Nunito:wght@400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --font-logo: 'Comfortaa', cursive;
+  --font-body: 'Nunito', sans-serif;
+  --ink: 51 51 51;
+  --sky: 14 165 233;
+  --sunny: 251 191 36;
+  --coral: 249 115 22;
+}
+
+body {
+  @apply bg-sky-50/80 text-slate-800 antialiased;
+  font-family: var(--font-body);
+}
+
+.logo {
+  font-family: var(--font-logo);
+  @apply font-bold tracking-wide;
+}
+
+@layer components {
+  .card {
+    @apply rounded-3xl border-2 border-sky-100 bg-white shadow-md shadow-sky-100/50;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center rounded-2xl bg-sky-500 px-5 py-3 font-semibold text-white shadow-lg shadow-sky-300/40 transition hover:bg-sky-600 hover:shadow-sky-400/50 focus:outline-none focus:ring-4 focus:ring-sky-300 focus:ring-offset-2;
+  }
+  .btn-secondary {
+    @apply inline-flex items-center justify-center rounded-2xl border-2 border-amber-200 bg-amber-50 px-5 py-3 font-semibold text-amber-800 transition hover:border-amber-300 hover:bg-amber-100 focus:outline-none focus:ring-4 focus:ring-amber-200 focus:ring-offset-2;
+  }
+  .input {
+    @apply w-full rounded-2xl border-2 border-sky-100 bg-white px-4 py-3 text-slate-800 placeholder-slate-400 focus:border-sky-400 focus:outline-none focus:ring-4 focus:ring-sky-100;
+  }
+}
