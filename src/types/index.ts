@@ -30,4 +30,5 @@ export interface Trip {
   activities: Activity[];
   createdAt: string;
   createdBy: string;
+  inviteCode?: string;
 }
