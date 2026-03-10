@@ -57,6 +57,3 @@ export function ActivityList({ tripId, activities = [], onUpdate }: ActivityList
     </div>
   );
 }
-```
-
-
