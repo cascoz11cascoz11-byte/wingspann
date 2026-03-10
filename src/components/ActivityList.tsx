@@ -10,7 +10,7 @@ function formatDate(dateStr: string) { return new Date(dateStr).toLocaleDateStri
 function groupActivitiesByDay(activities: Activity[]): { date: string; activities: Activity[] }[] {
   const byDate = new Map<string, Activity[]>();
   for (const a of activities) { const list = byDate.get(a.date) ?? []; list.push(a); byDate.set(a.date, list); }
-  return [...byDate.keys()].sort().map((date) => ({ date, activities: byDate.get(date)! }));
+  return Array.from(byDate.keys()).sort().map((date) => ({ date, activities: byDate.get(date)! }));
 }
 export function ActivityList({ tripId, activities = [], onUpdate }: ActivityListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
@@ -57,3 +57,6 @@ export function ActivityList({ tripId, activities = [], onUpdate }: ActivityList
     </div>
   );
 }
+```
+
+
