@@ -13,9 +13,9 @@ export function InviteMember({ tripId, onInvited }: InviteMemberProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
 
-  function handleSubmit(e: React.FormEvent) {
+  async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
-    addMember(tripId, { name, email });
+    await addMember(tripId, { name, email, status: "pending" });
     setName("");
     setEmail("");
     setOpen(false);
