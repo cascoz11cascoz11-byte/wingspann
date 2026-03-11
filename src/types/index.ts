@@ -3,7 +3,7 @@ export interface FamilyMember {
   name: string;
   email: string;
   avatar?: string;
-  status: "pending" | "accepted";
+  status: "pending" | "accepted" | "declined";
 }
 
 export interface Activity {
@@ -14,7 +14,7 @@ export interface Activity {
   time?: string;
   location?: string;
   link?: string;
-  type: "activity" | "meal" | "travel" | "other";
+  type: "activity" | "meal" | "travel" | "stay" |"other";
   createdAt: string;
 }
 
