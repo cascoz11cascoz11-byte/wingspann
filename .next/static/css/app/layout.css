@@ -916,6 +916,10 @@ video {
   font-size: 1.875rem;
   line-height: 2.25rem;
 }
+.text-4xl{
+  font-size: 2.25rem;
+  line-height: 2.5rem;
+}
 .text-lg{
   font-size: 1.125rem;
   line-height: 1.75rem;
@@ -923,6 +927,10 @@ video {
 .text-sm{
   font-size: 0.875rem;
   line-height: 1.25rem;
+}
+.text-xl{
+  font-size: 1.25rem;
+  line-height: 1.75rem;
 }
 .text-xs{
   font-size: 0.75rem;
