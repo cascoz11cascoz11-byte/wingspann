@@ -68,6 +68,11 @@ export async function addActivity(tripId: string, activity: Omit<Activity, "id" 
     location: activity.location,
     link: activity.link,
     type: activity.type,
+    travel_subtype: activity.travelSubtype,
+    departure_location: activity.departureLocation,
+    arrival_location: activity.arrivalLocation,
+    arrival_time: activity.arrivalTime,
+    flight_number: activity.flightNumber,
   }).select().single();
   return data ? mapActivity(data) : undefined;
 }
@@ -81,6 +86,11 @@ export async function updateActivity(tripId: string, activityId: string, updates
     location: updates.location,
     link: updates.link,
     type: updates.type,
+    travel_subtype: updates.travelSubtype,
+    departure_location: updates.departureLocation,
+    arrival_location: updates.arrivalLocation,
+    arrival_time: updates.arrivalTime,
+    flight_number: updates.flightNumber,
   }).eq("id", activityId).eq("trip_id", tripId).select().single();
   return data ? mapActivity(data) : undefined;
 }
@@ -125,6 +135,11 @@ function mapActivity(data: any): Activity {
     location: data.location,
     link: data.link,
     type: data.type,
+    travelSubtype: data.travel_subtype,
+    departureLocation: data.departure_location,
+    arrivalLocation: data.arrival_location,
+    arrivalTime: data.arrival_time,
+    flightNumber: data.flight_number,
     createdAt: data.created_at,
   };
 }
