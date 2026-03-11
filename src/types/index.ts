@@ -14,7 +14,12 @@ export interface Activity {
   time?: string;
   location?: string;
   link?: string;
-  type: "activity" | "meal" | "travel" | "stay" |"other";
+  type: "event" | "meal" | "travel" | "accommodation" | "stay" | "other";
+  travelSubtype?: "drive" | "flight" | "other";
+  departureLocation?: string;
+  arrivalLocation?: string;
+  arrivalTime?: string;
+  flightNumber?: string;
   createdAt: string;
 }
 
