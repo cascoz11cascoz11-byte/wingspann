@@ -11,16 +11,9 @@ import { ActivityList } from "@/components/ActivityList";
 import { AddActivity } from "@/components/AddActivity";
 
 function formatDateRange(start: string, end: string) {
-  const s = new Date(start).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-  });
-  const e = new Date(end).toLocaleDateString("en-US", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-  });
-  return `${s} – ${e}`;
+  const s = new Date(start).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const e = new Date(end).toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  return `${s} - ${e}`;
 }
 
 export default function TripDetailPage() {
@@ -28,6 +21,7 @@ export default function TripDetailPage() {
   const router = useRouter();
   const id = params.id as string;
   const [trip, setTrip] = useState<Trip | null | undefined>(undefined);
+  const [copied, setCopied] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -42,60 +36,57 @@ export default function TripDetailPage() {
     if (!t) {
       setTrip(null);
     } else {
-      setTrip({
-        ...t,
-        members: [...(t.members ?? [])],
-        activities: [...(t.activities ?? [])],
-      });
+      setTrip({ ...t, members: [...(t.members ?? [])], activities: [...(t.activities ?? [])] });
     }
   }
 
+  function copyInviteLink() {
+    if (!trip?.inviteCode) return;
+    const link = `${window.location.origin}/join/${trip.inviteCode}`;
+    navigator.clipboard.writeText(link);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  }
+
   if (trip === undefined) {
-    return (
-      <div className="py-12 text-center">
-        <p className="text-slate-600">Loading...</p>
-      </div>
-    );
+    return <div className="py-12 text-center"><p className="text-slate-600">Loading...</p></div>;
   }
 
   if (trip === null) {
     return (
       <div className="py-12 text-center">
         <p className="text-slate-600">Trip not found.</p>
-        <Link href="/" className="mt-4 inline-block text-sky-600 hover:underline">
-          Back to trips
-        </Link>
+        <Link href="/" className="mt-4 inline-block text-sky-600 hover:underline">Back to trips</Link>
       </div>
     );
   }
 
   return (
     <div>
-      <Link
-        href="/"
-        className="mb-6 inline-block text-sm text-slate-600 hover:text-sky-600"
-      >
-        ← Back to trips
+      <Link href="/" className="mb-6 inline-block text-sm text-slate-600 hover:text-sky-600">
+        Back to trips
       </Link>
       <div className="mb-8">
-        <h1 className="font-display text-2xl font-semibold text-sky-700">
-          {trip.name}
-        </h1>
-        <p className="mt-1 text-slate-600">{trip.destination}</p>
-        <p className="mt-1 text-sm text-slate-500">
-          {formatDateRange(trip.startDate, trip.endDate)}
-        </p>
-        {trip.description && (
-          <p className="mt-2 text-slate-600">{trip.description}</p>
-        )}
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="font-display text-2xl font-semibold text-sky-700">{trip.name}</h1>
+            <p className="mt-1 text-slate-600">{trip.destination}</p>
+            <p className="mt-1 text-sm text-slate-500">{formatDateRange(trip.startDate, trip.endDate)}</p>
+            {trip.description && <p className="mt-2 text-slate-600">{trip.description}</p>}
+          </div>
+          <button
+            onClick={copyInviteLink}
+            className="btn-secondary shrink-0 text-sm"
+          >
+            {copied ? "Copied!" : "Copy invite link"}
+          </button>
+        </div>
       </div>
 
       <div className="space-y-10">
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold text-sky-700">
-              Family members
-            </h2>
+            <h2 className="font-display text-lg font-semibold text-sky-700">Family members</h2>
             <InviteMember tripId={trip.id} onInvited={refreshTrip} />
           </div>
           <MemberList tripId={trip.id} members={trip.members} onUpdate={refreshTrip} />
@@ -103,16 +94,10 @@ export default function TripDetailPage() {
 
         <section>
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold text-sky-700">
-              Itinerary
-            </h2>
+            <h2 className="font-display text-lg font-semibold text-sky-700">Itinerary</h2>
             <AddActivity tripId={trip.id} onAdded={refreshTrip} />
           </div>
-          <ActivityList
-            tripId={trip.id}
-            activities={trip.activities}
-            onUpdate={refreshTrip}
-          />
+          <ActivityList tripId={trip.id} activities={trip.activities} onUpdate={refreshTrip} />
         </section>
       </div>
     </div>
