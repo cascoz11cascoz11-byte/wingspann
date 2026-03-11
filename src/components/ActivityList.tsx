@@ -1,5 +1,5 @@
 "use client";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect, useCallback } from "react";
 import { removeActivity, updateActivityParticipants } from "@/lib/store";
 import type { Activity, FamilyMember } from "@/types";
 import { EditActivityForm } from "./EditActivityForm";
@@ -9,6 +9,21 @@ interface ActivityListProps { tripId: string; activities: Activity[]; members: F
 const TYPE_LABELS: Record<Activity["type"], string> = { event: "Event", meal: "Meal", travel: "Travel", accommodation: "Accommodations", stay: "Stay", other: "Other" };
 const TYPE_COLORS: Record<Activity["type"], string> = { event: "bg-sky-100 text-sky-700", meal: "bg-amber-100 text-amber-700", travel: "bg-slate-200 text-slate-700", accommodation: "bg-green-100 text-green-700", stay: "bg-purple-100 text-purple-700", other: "bg-slate-100 text-slate-600" };
 
+const STATUS_COLORS: Record<string, string> = {
+  Active: "bg-green-100 text-green-700",
+  Landed: "bg-sky-100 text-sky-700",
+  Delayed: "bg-red-100 text-red-700",
+  Cancelled: "bg-red-200 text-red-800",
+  Scheduled: "bg-amber-100 text-amber-700",
+  Unknown: "bg-slate-100 text-slate-600",
+};
+
+interface FlightStatus {
+  status: string | null;
+  departure: { airport: string | null; scheduled: string | null; actual: string | null; gate: string | null; terminal: string | null; };
+  arrival: { airport: string | null; scheduled: string | null; actual: string | null; gate: string | null; terminal: string | null; };
+}
+
 function formatDate(dateStr: string) { return new Date(dateStr).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }); }
 
 function formatTime(time: string) {
@@ -16,6 +31,16 @@ function formatTime(time: string) {
   const ampm = h >= 12 ? "PM" : "AM";
   const hour = h % 12 || 12;
   return `${hour}:${m.toString().padStart(2, "0")} ${ampm}`;
+}
+
+function formatFlightTime(isoOrTime: string) {
+  try {
+    const date = new Date(isoOrTime);
+    if (!isNaN(date.getTime())) {
+      return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+    }
+    return formatTime(isoOrTime);
+  } catch { return isoOrTime; }
 }
 
 function calculateETA(departureTime: string, driveTime: string): string {
@@ -40,6 +65,83 @@ function groupActivitiesByDay(activities: Activity[]): { date: string; activitie
   const byDate = new Map<string, Activity[]>();
   for (const a of activities) { const list = byDate.get(a.date) ?? []; list.push(a); byDate.set(a.date, list); }
   return Array.from(byDate.keys()).sort().map((date) => ({ date, activities: byDate.get(date)! }));
+}
+
+function FlightStatusCard({ flightNumber, date }: { flightNumber: string; date: string }) {
+  const [status, setStatus] = useState<FlightStatus | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
+  const [expanded, setExpanded] = useState(false);
+
+  const fetchStatus = useCallback(async () => {
+    setLoading(true);
+    setError(false);
+    try {
+      const res = await fetch(`/api/flight-status?flight=${encodeURIComponent(flightNumber)}&date=${date}`);
+      if (!res.ok) { setError(true); setLoading(false); return; }
+      const data = await res.json();
+      setStatus(data);
+    } catch { setError(true); }
+    setLoading(false);
+  }, [flightNumber, date]);
+
+  useEffect(() => {
+    if (expanded && !status) fetchStatus();
+  }, [expanded, status, fetchStatus]);
+
+  return (
+    <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 overflow-hidden">
+      <button
+        type="button"
+        onClick={() => setExpanded(!expanded)}
+        className="w-full flex items-center justify-between px-3 py-2 text-sm text-blue-700 font-medium hover:bg-blue-100 transition"
+      >
+        <span>✈️ Live flight status</span>
+        <span>{expanded ? "▲" : "▼"}</span>
+      </button>
+
+      {expanded && (
+        <div className="px-3 pb-3 space-y-2">
+          {loading && <p className="text-sm text-blue-500">Fetching flight info...</p>}
+          {error && (
+            <div className="flex items-center justify-between">
+              <p className="text-sm text-red-500">Could not find flight info.</p>
+              <button onClick={fetchStatus} className="text-xs text-blue-600 hover:underline">Retry</button>
+            </div>
+          )}
+          {status && !loading && (
+            <>
+              <div className="flex items-center gap-2">
+                <span className={"rounded-full px-2 py-0.5 text-xs font-semibold " + (STATUS_COLORS[status.status ?? "Unknown"] ?? STATUS_COLORS.Unknown)}>
+                  {status.status ?? "Unknown"}
+                </span>
+                <button onClick={fetchStatus} className="text-xs text-blue-500 hover:underline">Refresh</button>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-xs text-slate-700">
+                <div className="rounded-lg bg-white p-2 space-y-0.5">
+                  <p className="font-semibold text-slate-500 uppercase tracking-wide">Departure</p>
+                  {status.departure.airport && <p>{status.departure.airport}</p>}
+                  {status.departure.scheduled && <p>Scheduled: {formatFlightTime(status.departure.scheduled)}</p>}
+                  {status.departure.actual && <p className="text-green-700">Actual: {formatFlightTime(status.departure.actual)}</p>}
+                  {status.departure.terminal && <p>Terminal {status.departure.terminal}</p>}
+                  {status.departure.gate && <p>Gate {status.departure.gate}</p>}
+                </div>
+                <div className="rounded-lg bg-white p-2 space-y-0.5">
+                  <p className="font-semibold text-slate-500 uppercase tracking-wide">Arrival</p>
+                  {status.arrival.airport && <p>{status.arrival.airport}</p>}
+                  {status.arrival.scheduled && <p>Scheduled: {formatFlightTime(status.arrival.scheduled)}</p>}
+                  {status.arrival.actual && <p className="text-green-700">Actual: {formatFlightTime(status.arrival.actual)}</p>}
+                  {status.arrival.terminal && <p>Terminal {status.arrival.terminal}</p>}
+                  {status.arrival.gate && <p>Gate {status.arrival.gate}</p>}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
+      )}
+    </div>
+  );
 }
 
 export function ActivityList({ tripId, activities = [], members = [], onUpdate }: ActivityListProps) {
@@ -121,6 +223,10 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
                         {activity.time && ` · Departs ${formatTime(activity.time)}`}
                         {activity.arrivalTime && ` · Arrives ${formatTime(activity.arrivalTime)}`}
                       </div>
+                    )}
+
+                    {activity.travelSubtype === "flight" && activity.flightNumber && (
+                      <FlightStatusCard flightNumber={activity.flightNumber} date={activity.date} />
                     )}
 
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
