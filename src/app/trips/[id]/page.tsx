@@ -97,7 +97,7 @@ export default function TripDetailPage() {
             <h2 className="font-display text-lg font-semibold text-sky-700">Itinerary</h2>
             <AddActivity tripId={trip.id} onAdded={refreshTrip} />
           </div>
-          <ActivityList tripId={trip.id} activities={trip.activities} onUpdate={refreshTrip} />
+          <ActivityList tripId={trip.id} activities={trip.activities} members={trip.members} onUpdate={refreshTrip} />
         </section>
       </div>
     </div>

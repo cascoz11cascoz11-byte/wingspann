@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { addActivity } from "@/lib/store";
 import type { Activity } from "@/types";
 
@@ -32,7 +32,26 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
   const [arrivalLocation, setArrivalLocation] = useState("");
   const [arrivalTime, setArrivalTime] = useState("");
   const [flightNumber, setFlightNumber] = useState("");
+  const [driveTime, setDriveTime] = useState("");
+  const [calculatingDrive, setCalculatingDrive] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    if (travelSubtype !== "drive" || !departureLocation || !arrivalLocation) return;
+    const timeout = setTimeout(async () => {
+      setCalculatingDrive(true);
+      try {
+        const res = await fetch(`/api/drive-time?origin=${encodeURIComponent(departureLocation)}&destination=${encodeURIComponent(arrivalLocation)}`);
+        const data = await res.json();
+        if (data.duration) setDriveTime(data.duration);
+        else setDriveTime("");
+      } catch {
+        setDriveTime("");
+      }
+      setCalculatingDrive(false);
+    }, 1000);
+    return () => clearTimeout(timeout);
+  }, [departureLocation, arrivalLocation, travelSubtype]);
 
   function resetForm() {
     setTitle("");
@@ -47,6 +66,7 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
     setArrivalLocation("");
     setArrivalTime("");
     setFlightNumber("");
+    setDriveTime("");
     setSaving(false);
   }
 
@@ -74,6 +94,7 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
       arrivalLocation: arrivalLocation || undefined,
       arrivalTime: arrivalTime || undefined,
       flightNumber: flightNumber || undefined,
+      driveTime: driveTime || undefined,
     });
 
     resetForm();
@@ -170,6 +191,17 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
               required
             />
           </div>
+
+          {travelSubtype === "drive" && (
+            <div className="rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-700">
+              {calculatingDrive
+                ? "🚗 Calculating drive time..."
+                : driveTime
+                ? `🚗 Est. drive time: ${driveTime}`
+                : "Enter locations above to calculate drive time"}
+            </div>
+          )}
+
           <div className="grid grid-cols-2 gap-4">
             <div>
               <label className="block text-sm font-medium text-slate-700">Departure time</label>
@@ -251,17 +283,6 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
           placeholder="Details..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-slate-700">Location (optional)</label>
-        <input
-          type="text"
-          className="input mt-1"
-          placeholder="Where?"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
         />
       </div>
 

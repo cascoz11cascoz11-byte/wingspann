@@ -18,6 +18,8 @@ export default function JoinTripPage() {
   const [trip, setTrip] = useState<Trip | null>(null);
   const [loading, setLoading] = useState(true);
   const [responding, setResponding] = useState(false);
+  const [showNames, setShowNames] = useState(false);
+  const [names, setNames] = useState("");
 
   useEffect(() => {
     async function load() {
@@ -29,6 +31,10 @@ export default function JoinTripPage() {
   }, [code]);
 
   async function handleRSVP(status: "accepted" | "declined") {
+    if (status === "accepted" && !showNames) {
+      setShowNames(true);
+      return;
+    }
     setResponding(true);
     const supabase = createClient();
     const { data: { user } } = await supabase.auth.getUser();
@@ -36,14 +42,35 @@ export default function JoinTripPage() {
       router.push("/login?redirect=/join/" + code);
       return;
     }
-    await addMember(trip!.id, {
-      name: user.email!,
-      email: user.email!,
-      status,
-    });
+
     if (status === "accepted") {
+      const nameList = names
+        .split(",")
+        .map((n) => n.trim())
+        .filter(Boolean);
+
+      if (nameList.length === 0) {
+        await addMember(trip!.id, {
+          name: user.email!,
+          email: user.email!,
+          status: "accepted",
+        });
+      } else {
+        for (const name of nameList) {
+          await addMember(trip!.id, {
+            name,
+            email: user.email!,
+            status: "accepted",
+          });
+        }
+      }
       router.push("/trips/" + trip!.id);
     } else {
+      await addMember(trip!.id, {
+        name: user.email!,
+        email: user.email!,
+        status: "declined",
+      });
       router.push("/");
     }
   }
@@ -106,21 +133,47 @@ export default function JoinTripPage() {
           </div>
         )}
 
+        {showNames && (
+          <div className="mt-6 rounded-2xl bg-amber-50 border-2 border-amber-200 p-4 space-y-3">
+            <p className="font-medium text-amber-800">Who is coming? 🙌</p>
+            <p className="text-sm text-amber-700">Enter everyone joining — separate names with commas</p>
+            <input
+              type="text"
+              className="input"
+              placeholder="e.g. Sarah, Emma, Jake, Dad"
+              value={names}
+              onChange={(e) => setNames(e.target.value)}
+              autoFocus
+            />
+            <p className="text-xs text-amber-600">Leave blank to just add yourself</p>
+          </div>
+        )}
+
         <div className="mt-8 flex gap-3">
           <button
             onClick={() => handleRSVP("accepted")}
             disabled={responding}
             className="btn-primary flex-1"
           >
-            {responding ? "Saving..." : "Yes, I am in! 🙌"}
+            {responding ? "Saving..." : showNames ? "Confirm attendance 🙌" : "Yes, I am in! 🙌"}
           </button>
-          <button
-            onClick={() => handleRSVP("declined")}
-            disabled={responding}
-            className="btn-secondary flex-1"
-          >
-            {responding ? "Saving..." : "Can not make it 😢"}
-          </button>
+          {!showNames && (
+            <button
+              onClick={() => handleRSVP("declined")}
+              disabled={responding}
+              className="btn-secondary flex-1"
+            >
+              {responding ? "Saving..." : "Can not make it 😢"}
+            </button>
+          )}
+          {showNames && (
+            <button
+              onClick={() => setShowNames(false)}
+              className="btn-secondary flex-1"
+            >
+              Back
+            </button>
+          )}
         </div>
       </div>
     </div>
