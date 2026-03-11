@@ -13,17 +13,17 @@ async function getUserId(): Promise<string | undefined> {
 export async function getTrips(): Promise<Trip[]> {
   const userId = await getUserId();
   if (!userId) return [];
-  const { data: trips } = await db().from("trips").select("*, members(*), activities(*)").eq("user_id", userId).order("created_at", { ascending: false });
+  const { data: trips } = await db().from("trips").select("*, members(*), activities(*, activity_participants(*))").eq("user_id", userId).order("created_at", { ascending: false });
   return (trips ?? []).map(mapTrip);
 }
 
 export async function getTrip(id: string): Promise<Trip | undefined> {
-  const { data } = await db().from("trips").select("*, members(*), activities(*)").eq("id", id).single();
+  const { data } = await db().from("trips").select("*, members(*), activities(*, activity_participants(*))").eq("id", id).single();
   return data ? mapTrip(data) : undefined;
 }
 
 export async function getTripByInviteCode(code: string): Promise<Trip | undefined> {
-  const { data } = await db().from("trips").select("*, members(*), activities(*)").eq("invite_code", code).single();
+  const { data } = await db().from("trips").select("*, members(*), activities(*, activity_participants(*))").eq("invite_code", code).single();
   return data ? mapTrip(data) : undefined;
 }
 
@@ -38,7 +38,7 @@ export async function createTrip(data: Omit<Trip, "id" | "createdAt" | "activiti
     cover_image: data.coverImage,
     created_by: data.createdBy,
     user_id: userId,
-  }).select("*, members(*), activities(*)").single();
+  }).select("*, members(*), activities(*, activity_participants(*))").single();
   if (error) throw new Error(error.message);
   return mapTrip(trip);
 }
@@ -73,6 +73,7 @@ export async function addActivity(tripId: string, activity: Omit<Activity, "id" 
     arrival_location: activity.arrivalLocation,
     arrival_time: activity.arrivalTime,
     flight_number: activity.flightNumber,
+    drive_time: activity.driveTime,
   }).select().single();
   return data ? mapActivity(data) : undefined;
 }
@@ -91,8 +92,19 @@ export async function updateActivity(tripId: string, activityId: string, updates
     arrival_location: updates.arrivalLocation,
     arrival_time: updates.arrivalTime,
     flight_number: updates.flightNumber,
+    drive_time: updates.driveTime,
   }).eq("id", activityId).eq("trip_id", tripId).select().single();
   return data ? mapActivity(data) : undefined;
+}
+
+export async function updateActivityParticipants(activityId: string, memberIds: string[]): Promise<boolean> {
+  const supabase = db();
+  await supabase.from("activity_participants").delete().eq("activity_id", activityId);
+  if (memberIds.length === 0) return true;
+  const { error } = await supabase.from("activity_participants").insert(
+    memberIds.map((memberId) => ({ activity_id: activityId, member_id: memberId }))
+  );
+  return !error;
 }
 
 export async function removeActivity(tripId: string, activityId: string): Promise<boolean> {
@@ -140,6 +152,8 @@ function mapActivity(data: any): Activity {
     arrivalLocation: data.arrival_location,
     arrivalTime: data.arrival_time,
     flightNumber: data.flight_number,
+    driveTime: data.drive_time,
+    participants: (data.activity_participants ?? []).map((p: any) => p.member_id),
     createdAt: data.created_at,
   };
 }

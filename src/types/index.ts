@@ -20,6 +20,8 @@ export interface Activity {
   arrivalLocation?: string;
   arrivalTime?: string;
   flightNumber?: string;
+  driveTime?: string;
+  participants?: string[];
   createdAt: string;
 }
 
