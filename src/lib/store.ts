@@ -48,7 +48,7 @@ export async function addMember(tripId: string, member: Omit<FamilyMember, "id">
     trip_id: tripId,
     name: member.name,
     email: member.email,
-    status: "pending",
+    status: member.status,
   }).select().single();
   return data ? { id: data.id, name: data.name, email: data.email, status: data.status } : undefined;
 }
