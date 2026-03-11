@@ -1,28 +1,35 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient } from "@/lib/supabase";
 import type { Trip, Activity, FamilyMember } from "@/types";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-);
+function db() {
+  return createClient();
+}
+
+async function getUserId(): Promise<string | undefined> {
+  const { data: { user } } = await db().auth.getUser();
+  return user?.id;
+}
 
 export async function getTrips(): Promise<Trip[]> {
-  const { data: trips } = await supabase.from("trips").select("*, members(*), activities(*)").order("created_at", { ascending: false });
+  const userId = await getUserId();
+  if (!userId) return [];
+  const { data: trips } = await db().from("trips").select("*, members(*), activities(*)").eq("user_id", userId).order("created_at", { ascending: false });
   return (trips ?? []).map(mapTrip);
 }
 
 export async function getTrip(id: string): Promise<Trip | undefined> {
-  const { data } = await supabase.from("trips").select("*, members(*), activities(*)").eq("id", id).single();
+  const { data } = await db().from("trips").select("*, members(*), activities(*)").eq("id", id).single();
   return data ? mapTrip(data) : undefined;
 }
 
 export async function getTripByInviteCode(code: string): Promise<Trip | undefined> {
-  const { data } = await supabase.from("trips").select("*, members(*), activities(*)").eq("invite_code", code).single();
+  const { data } = await db().from("trips").select("*, members(*), activities(*)").eq("invite_code", code).single();
   return data ? mapTrip(data) : undefined;
 }
 
 export async function createTrip(data: Omit<Trip, "id" | "createdAt" | "activities" | "members">): Promise<Trip> {
-  const { data: trip } = await supabase.from("trips").insert({
+  const userId = await getUserId();
+  const { data: trip, error } = await db().from("trips").insert({
     name: data.name,
     destination: data.destination,
     start_date: data.startDate,
@@ -30,12 +37,14 @@ export async function createTrip(data: Omit<Trip, "id" | "createdAt" | "activiti
     description: data.description,
     cover_image: data.coverImage,
     created_by: data.createdBy,
+    user_id: userId,
   }).select("*, members(*), activities(*)").single();
+  if (error) throw new Error(error.message);
   return mapTrip(trip);
 }
 
 export async function addMember(tripId: string, member: Omit<FamilyMember, "id">): Promise<FamilyMember | undefined> {
-  const { data } = await supabase.from("members").insert({
+  const { data } = await db().from("members").insert({
     trip_id: tripId,
     name: member.name,
     email: member.email,
@@ -45,12 +54,12 @@ export async function addMember(tripId: string, member: Omit<FamilyMember, "id">
 }
 
 export async function removeMember(tripId: string, memberId: string): Promise<boolean> {
-  const { error } = await supabase.from("members").delete().eq("id", memberId).eq("trip_id", tripId);
+  const { error } = await db().from("members").delete().eq("id", memberId).eq("trip_id", tripId);
   return !error;
 }
 
 export async function addActivity(tripId: string, activity: Omit<Activity, "id" | "createdAt">): Promise<Activity | undefined> {
-  const { data } = await supabase.from("activities").insert({
+  const { data } = await db().from("activities").insert({
     trip_id: tripId,
     title: activity.title,
     description: activity.description,
@@ -64,7 +73,7 @@ export async function addActivity(tripId: string, activity: Omit<Activity, "id" 
 }
 
 export async function updateActivity(tripId: string, activityId: string, updates: Partial<Activity>): Promise<Activity | undefined> {
-  const { data } = await supabase.from("activities").update({
+  const { data } = await db().from("activities").update({
     title: updates.title,
     description: updates.description,
     date: updates.date,
@@ -77,7 +86,7 @@ export async function updateActivity(tripId: string, activityId: string, updates
 }
 
 export async function removeActivity(tripId: string, activityId: string): Promise<boolean> {
-  const { error } = await supabase.from("activities").delete().eq("id", activityId).eq("trip_id", tripId);
+  const { error } = await db().from("activities").delete().eq("id", activityId).eq("trip_id", tripId);
   return !error;
 }
 
