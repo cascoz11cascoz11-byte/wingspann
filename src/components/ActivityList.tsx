@@ -4,8 +4,8 @@ import { removeActivity } from "@/lib/store";
 import type { Activity } from "@/types";
 import { EditActivityForm } from "./EditActivityForm";
 interface ActivityListProps { tripId: string; activities: Activity[]; onUpdate: () => void; }
-const TYPE_LABELS: Record<Activity["type"], string> = { activity: "Activity", meal: "Meal", travel: "Travel", other: "Other" };
-const TYPE_COLORS: Record<Activity["type"], string> = { activity: "bg-sky-100 text-sky-700", meal: "bg-amber-100 text-amber-700", travel: "bg-slate-200 text-slate-700", other: "bg-slate-100 text-slate-600" };
+const TYPE_LABELS: Record<Activity["type"], string> = { activity: "Activity", meal: "Meal", travel: "Travel", stay: "Stay", other: "Other" };
+const TYPE_COLORS: Record<Activity["type"], string> = { activity: "bg-sky-100 text-sky-700", meal: "bg-amber-100 text-amber-700", travel: "bg-slate-200 text-slate-700", stay: "bg-purple-100 text-purple-700", other: "bg-slate-100 text-slate-600" };
 function formatDate(dateStr: string) { return new Date(dateStr).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }); }
 function groupActivitiesByDay(activities: Activity[]): { date: string; activities: Activity[] }[] {
   const byDate = new Map<string, Activity[]>();
@@ -57,3 +57,4 @@ export function ActivityList({ tripId, activities = [], onUpdate }: ActivityList
     </div>
   );
 }
+
