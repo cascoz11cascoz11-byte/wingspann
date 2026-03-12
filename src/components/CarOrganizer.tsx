@@ -54,7 +54,8 @@ export function CarOrganizer({ tripId, members }: CarOrganizerProps) {
     setLoading(false);
   }
 
-  useEffect(() => {
+   // eslint-disable-next-line react-hooks/exhaustive-deps
+   useEffect(() => {
     if (open) load();
   }, [open]);
 
