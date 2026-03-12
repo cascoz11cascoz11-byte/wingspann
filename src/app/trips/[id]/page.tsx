@@ -9,6 +9,8 @@ import { InviteMember } from "@/components/InviteMember";
 import { MemberList } from "@/components/MemberList";
 import { ActivityList } from "@/components/ActivityList";
 import { AddActivity } from "@/components/AddActivity";
+import { RoomPicker } from "@/components/RoomPicker";
+import { CarOrganizer } from "@/components/CarOrganizer";
 
 function formatDateRange(start: string, end: string) {
   const s = new Date(start).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -87,7 +89,11 @@ export default function TripDetailPage() {
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold text-sky-700">Family members</h2>
-            <InviteMember tripId={trip.id} onInvited={refreshTrip} />
+            <div className="flex gap-2">
+              <CarOrganizer tripId={trip.id} members={trip.members} />
+              <RoomPicker members={trip.members} />
+              <InviteMember tripId={trip.id} onInvited={refreshTrip} />
+            </div>
           </div>
           <MemberList tripId={trip.id} members={trip.members} onUpdate={refreshTrip} />
         </section>
