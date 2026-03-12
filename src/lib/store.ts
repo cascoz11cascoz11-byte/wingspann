@@ -1,6 +1,16 @@
 import { createClient } from "@/lib/supabase";
 import type { Trip, Activity, FamilyMember } from "@/types";
 
+export interface Car {
+  id: string;
+  tripId: string;
+  name: string;
+  seats: number;
+  layout: string;
+  assignments: { memberId: string; seatIndex: number }[];
+  createdAt: string;
+}
+
 function db() {
   return createClient();
 }
@@ -114,6 +124,47 @@ export async function removeActivity(tripId: string, activityId: string): Promis
   return !error;
 }
 
+export async function getCars(tripId: string): Promise<Car[]> {
+  const { data } = await db().from("cars").select("*, car_assignments(*)").eq("trip_id", tripId).order("created_at", { ascending: true });
+  return (data ?? []).map(mapCar);
+}
+
+export async function addCar(tripId: string, name: string, seats: number, layout: string = "2+3"): Promise<Car | undefined> {
+  const { data } = await db().from("cars").insert({ trip_id: tripId, name, seats, layout }).select("*, car_assignments(*)").single();
+  return data ? mapCar(data) : undefined;
+}
+
+export async function removeCar(carId: string): Promise<boolean> {
+  const { error } = await db().from("cars").delete().eq("id", carId);
+  return !error;
+}
+
+export async function assignSeat(carId: string, memberId: string, seatIndex: number): Promise<boolean> {
+  await db().from("car_assignments").delete().eq("member_id", memberId);
+  const { error } = await db().from("car_assignments").insert({ car_id: carId, member_id: memberId, seat_index: seatIndex });
+  return !error;
+}
+
+export async function unassignSeat(carId: string, seatIndex: number): Promise<boolean> {
+  const { error } = await db().from("car_assignments").delete().eq("car_id", carId).eq("seat_index", seatIndex);
+  return !error;
+}
+
+function mapCar(data: any): Car {
+  return {
+    id: data.id,
+    tripId: data.trip_id,
+    name: data.name,
+    seats: data.seats,
+    layout: data.layout ?? "2+3",
+    assignments: (data.car_assignments ?? []).map((a: any) => ({
+      memberId: a.member_id,
+      seatIndex: a.seat_index,
+    })),
+    createdAt: data.created_at,
+  };
+}
+
 function mapTrip(data: any): Trip {
   return {
     id: data.id,
@@ -160,4 +211,3 @@ function mapActivity(data: any): Activity {
     createdAt: data.created_at,
   };
 }
-
