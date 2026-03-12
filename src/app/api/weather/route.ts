@@ -28,17 +28,22 @@ function weatherCodeToEmoji(code: number): string {
   return "🌡️";
 }
 
+function formatHour(isoString: string): string {
+  const date = new Date(isoString);
+  return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const location = searchParams.get("location");
   const date = searchParams.get("date");
   const time = searchParams.get("time");
+  const endTime = searchParams.get("endTime");
 
   if (!location || !date) {
     return NextResponse.json({ error: "Missing location or date" }, { status: 400 });
   }
 
-  // Geocode using Google Maps API
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
   const geoRes = await fetch(
     `https://maps.googleapis.com/maps/api/geocode/json?address=${encodeURIComponent(location)}&key=${apiKey}`
@@ -58,22 +63,51 @@ export async function GET(request: NextRequest) {
     const temps = weatherData?.hourly?.temperature_2m ?? [];
     const codes = weatherData?.hourly?.weathercode ?? [];
 
-    const targetHour = parseInt(time.split(":")[0]);
-    let closestIndex = 0;
+    const startHour = parseInt(time.split(":")[0]);
+    const endHour = endTime ? parseInt(endTime.split(":")[0]) : null;
+
+    // Find closest start index
+    let startIndex = 0;
     let closestDiff = Infinity;
     hours.forEach((h: string, i: number) => {
       const hour = new Date(h).getHours();
-      const diff = Math.abs(hour - targetHour);
-      if (diff < closestDiff) { closestDiff = diff; closestIndex = i; }
+      const diff = Math.abs(hour - startHour);
+      if (diff < closestDiff) { closestDiff = diff; startIndex = i; }
     });
 
-    const temp = Math.round(temps[closestIndex]);
-    const code = codes[closestIndex];
+    // If we have an end time, build hour-by-hour forecast
+    if (endHour !== null) {
+      const hourlyForecast = [];
+      for (let i = startIndex; i < hours.length; i++) {
+        const hour = new Date(hours[i]).getHours();
+        if (hour > endHour) break;
+        hourlyForecast.push({
+          time: formatHour(hours[i]),
+          temp: Math.round(temps[i]),
+          description: weatherCodeToDescription(codes[i]),
+          emoji: weatherCodeToEmoji(codes[i]),
+        });
+      }
+
+      const summaryTemp = Math.round(temps[startIndex]);
+      const summaryCode = codes[startIndex];
+
+      return NextResponse.json({
+        temp: summaryTemp,
+        description: weatherCodeToDescription(summaryCode),
+        emoji: weatherCodeToEmoji(summaryCode),
+        isHourly: true,
+        hourlyForecast,
+      });
+    }
+
+    // Single hour fallback
     return NextResponse.json({
-      temp,
-      description: weatherCodeToDescription(code),
-      emoji: weatherCodeToEmoji(code),
+      temp: Math.round(temps[startIndex]),
+      description: weatherCodeToDescription(codes[startIndex]),
+      emoji: weatherCodeToEmoji(codes[startIndex]),
       isHourly: true,
+      hourlyForecast: null,
     });
   } else {
     const weatherRes = await fetch(
@@ -91,6 +125,7 @@ export async function GET(request: NextRequest) {
       description: weatherCodeToDescription(code),
       emoji: weatherCodeToEmoji(code),
       isHourly: false,
+      hourlyForecast: null,
     });
   }
 }

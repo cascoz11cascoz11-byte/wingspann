@@ -24,6 +24,13 @@ interface FlightStatus {
   arrival: { airport: string | null; scheduled: string | null; actual: string | null; gate: string | null; terminal: string | null; };
 }
 
+interface HourlyWeather {
+  time: string;
+  temp: number;
+  description: string;
+  emoji: string;
+}
+
 interface WeatherData {
   temp?: number;
   max?: number;
@@ -31,6 +38,7 @@ interface WeatherData {
   description: string;
   emoji: string;
   isHourly: boolean;
+  hourlyForecast: HourlyWeather[] | null;
 }
 
 function formatDate(dateStr: string) { const [y, m, d] = dateStr.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }); }
@@ -73,8 +81,8 @@ function calculateETA(departureTime: string, driveTime: string): string {
 function isWithinTenDays(dateStr: string): boolean {
   const today = new Date();
   today.setHours(0, 0, 0, 0);
-  const activityDate = new Date(dateStr);
-  activityDate.setHours(0, 0, 0, 0);
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const activityDate = new Date(y, m - 1, d);
   const diffDays = (activityDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
   return diffDays >= 0 && diffDays <= 10;
 }
@@ -85,36 +93,64 @@ function groupActivitiesByDay(activities: Activity[]): { date: string; activitie
   return Array.from(byDate.keys()).sort().map((date) => ({ date, activities: byDate.get(date)! }));
 }
 
-function WeatherPill({ location, date, time }: { location: string; date: string; time?: string }) {
+function WeatherPill({ location, date, time, endTime }: { location: string; date: string; time?: string; endTime?: string }) {
   const [weather, setWeather] = useState<WeatherData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [expanded, setExpanded] = useState(false);
 
   const fetchWeather = useCallback(async () => {
     setLoading(true);
     try {
       const params = new URLSearchParams({ location, date });
       if (time) params.set("time", time);
+      if (endTime) params.set("endTime", endTime);
       const res = await fetch(`/api/weather?${params.toString()}`);
       if (!res.ok) { setLoading(false); return; }
       const data = await res.json();
       setWeather(data);
     } catch { }
     setLoading(false);
-  }, [location, date, time]);
+  }, [location, date, time, endTime]);
 
   useEffect(() => { fetchWeather(); }, [fetchWeather]);
 
   if (loading) return <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-400">🌡️ Loading...</span>;
   if (!weather) return null;
 
-  return (
-    <span className="rounded-full bg-sky-50 border border-sky-100 px-2 py-0.5 text-xs text-sky-700">
+  const hasHourly = weather.hourlyForecast && weather.hourlyForecast.length > 1;
+
+  const pill = (
+    <span
+      onClick={() => hasHourly && setExpanded(!expanded)}
+      className={`rounded-full bg-sky-50 border border-sky-100 px-2 py-0.5 text-xs text-sky-700 transition ${hasHourly ? "cursor-pointer hover:bg-sky-100" : ""}`}
+    >
       {weather.emoji}{" "}
       {weather.isHourly && weather.temp !== undefined
         ? `${weather.temp}°F`
         : `${weather.max}°F / ${weather.min}°F`}{" "}
       · {weather.description}
+      {hasHourly && <span className="ml-1 opacity-60">{expanded ? "▲" : "▼"}</span>}
     </span>
+  );
+
+  if (!hasHourly) return pill;
+
+  return (
+    <div className="inline-block">
+      {pill}
+      {expanded && (
+        <div className="mt-2 rounded-xl border border-sky-100 bg-sky-50 p-2 space-y-1">
+          {weather.hourlyForecast!.map((h) => (
+            <div key={h.time} className="flex items-center gap-3 text-xs text-slate-700">
+              <span className="w-20 text-slate-500">{h.time}</span>
+              <span>{h.emoji}</span>
+              <span className="font-medium">{h.temp}°F</span>
+              <span className="text-slate-500">{h.description}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -251,7 +287,7 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
                       {activity.travelSubtype === "flight" && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">✈️ Flight</span>}
                       {activity.travelSubtype === "drive" && <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">🚗 Drive</span>}
                       {activity.location && isWithinTenDays(activity.date) && (
-                        <WeatherPill location={activity.location} date={activity.date} time={activity.time} />
+                        <WeatherPill location={activity.location} date={activity.date} time={activity.time} endTime={activity.endTime} />
                       )}
                     </div>
 
@@ -283,7 +319,9 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
                     )}
 
                     <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
-                      {activity.time && activity.travelSubtype !== "drive" && activity.travelSubtype !== "flight" && <span>{formatTime(activity.time)}</span>}
+                      {activity.time && activity.travelSubtype !== "drive" && activity.travelSubtype !== "flight" && (
+                        <span>{formatTime(activity.time)}{activity.endTime && ` – ${formatTime(activity.endTime)}`}</span>
+                      )}
                       {activity.location && <span className="truncate">📍 {activity.location}</span>}
                     </div>
 
