@@ -64,7 +64,7 @@ export function ActivityFinder({ tripId, tripDestination, tripStartDate, onAdded
     setError(null);
     setHasSearched(false);
     setResults([]);
-    setAddedIndexes((prev) => { const next = new Set(prev); next.add(index); return next; });setAddedIndexes(new Set());
+    setAddedIndexes(new Set());
     setExpandedIndexes(new Set());
     setLuckyResult(null);
     setLuckyAdded(false);
@@ -218,7 +218,6 @@ export function ActivityFinder({ tripId, tripDestination, tripStartDate, onAdded
               </div>
               <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
             </div>
-
             <div className="flex gap-2">
               <button type="button" onClick={() => { setMode("bored"); setHasSearched(false); setResults([]); }} className={"flex-1 rounded-xl border-2 py-2 text-sm font-medium transition " + (mode === "bored" ? activeBorder : inactiveBorder)}>
                 🥱 Near me now
@@ -227,7 +226,6 @@ export function ActivityFinder({ tripId, tripDestination, tripStartDate, onAdded
                 {"📍 Near " + destShort}
               </button>
             </div>
-
             <div>
               <p className="text-xs font-medium text-slate-500 mb-2">Filter by category (leave blank for all)</p>
               <div className="flex flex-wrap gap-2">
@@ -238,7 +236,6 @@ export function ActivityFinder({ tripId, tripDestination, tripStartDate, onAdded
                 ))}
               </div>
             </div>
-
             <div className="flex gap-2">
               <button type="button" onClick={search} disabled={loading} className="btn-primary flex-1 py-3">
                 {loading ? "Searching..." : "🔍 Find things to do"}
@@ -249,40 +246,22 @@ export function ActivityFinder({ tripId, tripDestination, tripStartDate, onAdded
                 </button>
               )}
             </div>
-
             {error && (
               <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">{error}</div>
             )}
-
             {luckyResult && (
               <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 space-y-2">
                 <p className="text-xs font-semibold text-amber-600 mb-1">🎲 Your lucky pick!</p>
-                <ResultCard
-                  result={luckyResult}
-                  index={-1}
-                  added={luckyAdded}
-                  adding={addingIndex === -1}
-                  onAdd={handleAddLucky}
-                />
-                <button type="button" onClick={feelingLucky} className="text-xs text-amber-500 hover:text-amber-700">
-                  Try another
-                </button>
+                <ResultCard result={luckyResult} index={-1} added={luckyAdded} adding={addingIndex === -1} onAdd={handleAddLucky} />
+                <button type="button" onClick={feelingLucky} className="text-xs text-amber-500 hover:text-amber-700">Try another</button>
               </div>
             )}
-
             {hasSearched && (
               <div className="space-y-3">
                 {results.length === 0 ? (
                   <p className="text-sm text-slate-500 text-center py-4">No results found - try different categories!</p>
                 ) : results.map((result, index) => (
-                  <ResultCard
-                    key={index}
-                    result={result}
-                    index={index}
-                    added={addedIndexes.has(index)}
-                    adding={addingIndex === index}
-                    onAdd={() => handleAdd(result, index)}
-                  />
+                  <ResultCard key={index} result={result} index={index} added={addedIndexes.has(index)} adding={addingIndex === index} onAdd={() => handleAdd(result, index)} />
                 ))}
               </div>
             )}
