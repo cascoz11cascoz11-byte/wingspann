@@ -64,7 +64,7 @@ export function ActivityFinder({ tripId, tripDestination, tripStartDate, onAdded
     setError(null);
     setHasSearched(false);
     setResults([]);
-    setAddedIndexes(new Set());
+    setAddedIndexes((prev) => { const next = new Set(prev); next.add(index); return next; });setAddedIndexes(new Set());
     setExpandedIndexes(new Set());
     setLuckyResult(null);
     setLuckyAdded(false);
@@ -112,7 +112,7 @@ export function ActivityFinder({ tripId, tripDestination, tripStartDate, onAdded
       location: result.venue ?? "",
       link: result.link ?? "",
     });
-    setAddedIndexes((prev) => new Set([...prev, index]));
+    setAddedIndexes((prev) => { const next = new Set(prev); next.add(index); return next; });
     setAddingIndex(null);
     onAdded();
   }
