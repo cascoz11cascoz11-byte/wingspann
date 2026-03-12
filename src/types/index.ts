@@ -23,6 +23,25 @@ export interface Activity {
   driveTime?: string;
   participants?: string[];
   createdAt: string;
+  export interface Activity {
+    id: string;
+    title: string;
+    description?: string;
+    date: string;
+    time?: string;
+    endTime?: string;
+    location?: string;
+    link?: string;
+    type: "event" | "meal" | "travel" | "accommodation" | "stay" | "other";
+    travelSubtype?: "drive" | "flight" | "other";
+    departureLocation?: string;
+    arrivalLocation?: string;
+    arrivalTime?: string;
+    flightNumber?: string;
+    driveTime?: string;
+    participants?: string[];
+    createdAt: string;
+  }
 }
 
 export interface Trip {
