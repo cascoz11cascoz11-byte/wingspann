@@ -11,6 +11,7 @@ import { ActivityList } from "@/components/ActivityList";
 import { AddActivity } from "@/components/AddActivity";
 import { RoomPicker } from "@/components/RoomPicker";
 import { CarOrganizer } from "@/components/CarOrganizer";
+import { ActivityFinder } from "@/components/ActivityFinder";
 
 function formatDateRange(start: string, end: string) {
   const s = new Date(start).toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -101,7 +102,15 @@ export default function TripDetailPage() {
         <section>
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold text-sky-700">Itinerary</h2>
-            <AddActivity tripId={trip.id} onAdded={refreshTrip} />
+            <div className="flex gap-2">
+              <ActivityFinder
+                tripId={trip.id}
+                tripDestination={trip.destination}
+                tripStartDate={trip.startDate}
+                onAdded={refreshTrip}
+              />
+              <AddActivity tripId={trip.id} onAdded={refreshTrip} />
+            </div>
           </div>
           <ActivityList tripId={trip.id} activities={trip.activities} members={trip.members} onUpdate={refreshTrip} />
         </section>
