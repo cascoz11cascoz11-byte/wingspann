@@ -1,3 +1,4 @@
 {
-  "/trips/[id]/page": "app/trips/[id]/page.js"
+  "/trips/[id]/page": "app/trips/[id]/page.js",
+  "/api/weather/route": "app/api/weather/route.js"
 }
