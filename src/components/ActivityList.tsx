@@ -24,7 +24,16 @@ interface FlightStatus {
   arrival: { airport: string | null; scheduled: string | null; actual: string | null; gate: string | null; terminal: string | null; };
 }
 
-function formatDate(dateStr: string) { return new Date(dateStr).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }); }
+interface WeatherData {
+  temp?: number;
+  max?: number;
+  min?: number;
+  description: string;
+  emoji: string;
+  isHourly: boolean;
+}
+
+function formatDate(dateStr: string) { const [y, m, d] = dateStr.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }); }
 
 function formatTime(time: string) {
   const [h, m] = time.split(":").map(Number);
@@ -61,10 +70,52 @@ function calculateETA(departureTime: string, driveTime: string): string {
   } catch { return ""; }
 }
 
+function isWithinTenDays(dateStr: string): boolean {
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+  const activityDate = new Date(dateStr);
+  activityDate.setHours(0, 0, 0, 0);
+  const diffDays = (activityDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+  return diffDays >= 0 && diffDays <= 10;
+}
+
 function groupActivitiesByDay(activities: Activity[]): { date: string; activities: Activity[] }[] {
   const byDate = new Map<string, Activity[]>();
   for (const a of activities) { const list = byDate.get(a.date) ?? []; list.push(a); byDate.set(a.date, list); }
   return Array.from(byDate.keys()).sort().map((date) => ({ date, activities: byDate.get(date)! }));
+}
+
+function WeatherPill({ location, date, time }: { location: string; date: string; time?: string }) {
+  const [weather, setWeather] = useState<WeatherData | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  const fetchWeather = useCallback(async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({ location, date });
+      if (time) params.set("time", time);
+      const res = await fetch(`/api/weather?${params.toString()}`);
+      if (!res.ok) { setLoading(false); return; }
+      const data = await res.json();
+      setWeather(data);
+    } catch { }
+    setLoading(false);
+  }, [location, date, time]);
+
+  useEffect(() => { fetchWeather(); }, [fetchWeather]);
+
+  if (loading) return <span className="rounded-full bg-slate-100 px-2 py-0.5 text-xs text-slate-400">🌡️ Loading...</span>;
+  if (!weather) return null;
+
+  return (
+    <span className="rounded-full bg-sky-50 border border-sky-100 px-2 py-0.5 text-xs text-sky-700">
+      {weather.emoji}{" "}
+      {weather.isHourly && weather.temp !== undefined
+        ? `${weather.temp}°F`
+        : `${weather.max}°F / ${weather.min}°F`}{" "}
+      · {weather.description}
+    </span>
+  );
 }
 
 function FlightStatusCard({ flightNumber, date }: { flightNumber: string; date: string }) {
@@ -117,7 +168,6 @@ function FlightStatusCard({ flightNumber, date }: { flightNumber: string; date: 
                 </span>
                 <button onClick={fetchStatus} className="text-xs text-blue-500 hover:underline">Refresh</button>
               </div>
-
               <div className="grid grid-cols-2 gap-2 text-xs text-slate-700">
                 <div className="rounded-lg bg-white p-2 space-y-0.5">
                   <p className="font-semibold text-slate-500 uppercase tracking-wide">Departure</p>
@@ -200,6 +250,9 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
                       <span className={"rounded-full px-2 py-0.5 text-xs font-medium " + TYPE_COLORS[activity.type]}>{TYPE_LABELS[activity.type]}</span>
                       {activity.travelSubtype === "flight" && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">✈️ Flight</span>}
                       {activity.travelSubtype === "drive" && <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">🚗 Drive</span>}
+                      {activity.location && isWithinTenDays(activity.date) && (
+                        <WeatherPill location={activity.location} date={activity.date} time={activity.time} />
+                      )}
                     </div>
 
                     {activity.description && <p className="mt-1 text-sm text-slate-600">{activity.description}</p>}

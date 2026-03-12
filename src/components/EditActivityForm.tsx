@@ -25,6 +25,7 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
   const [description, setDescription] = useState(activity.description ?? "");
   const [date, setDate] = useState(activity.date);
   const [time, setTime] = useState(activity.time ?? "");
+  const [endTime, setEndTime] = useState(activity.endTime ?? "");
   const [location, setLocation] = useState(activity.location ?? "");
   const [link, setLink] = useState(activity.link ?? "");
   const [type, setType] = useState<Activity["type"]>(activity.type);
@@ -40,6 +41,7 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
     setDescription(activity.description ?? "");
     setDate(activity.date);
     setTime(activity.time ?? "");
+    setEndTime(activity.endTime ?? "");
     setLocation(activity.location ?? "");
     setLink(activity.link ?? "");
     setType(activity.type);
@@ -66,6 +68,7 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
       description: description || undefined,
       date,
       time: time || undefined,
+      endTime: endTime || undefined,
       location: location || undefined,
       link: link || undefined,
       type,
@@ -197,19 +200,19 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
               required
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Date</label>
+            <input
+              type="date"
+              className="input mt-1"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">Date</label>
-              <input
-                type="date"
-                className="input mt-1"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Time</label>
+              <label className="block text-sm font-medium text-slate-700">Start time</label>
               <input
                 type="time"
                 className="input mt-1"
@@ -217,6 +220,25 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
                 onChange={(e) => setTime(e.target.value)}
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">End time (optional)</label>
+              <input
+                type="time"
+                className="input mt-1"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Location (optional)</label>
+            <input
+              type="text"
+              className="input mt-1"
+              placeholder="Where?"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
           </div>
         </>
       )}
@@ -242,17 +264,6 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
           placeholder="Details..."
           value={description}
           onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-slate-700">Location (optional)</label>
-        <input
-          type="text"
-          className="input mt-1"
-          placeholder="Where?"
-          value={location}
-          onChange={(e) => setLocation(e.target.value)}
         />
       </div>
 

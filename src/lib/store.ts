@@ -65,6 +65,7 @@ export async function addActivity(tripId: string, activity: Omit<Activity, "id" 
     description: activity.description,
     date: activity.date,
     time: activity.time,
+    end_time: activity.endTime,
     location: activity.location,
     link: activity.link,
     type: activity.type,
@@ -84,6 +85,7 @@ export async function updateActivity(tripId: string, activityId: string, updates
     description: updates.description,
     date: updates.date,
     time: updates.time,
+    end_time: updates.endTime,
     location: updates.location,
     link: updates.link,
     type: updates.type,
@@ -144,6 +146,7 @@ function mapActivity(data: any): Activity {
     description: data.description,
     date: data.date,
     time: data.time,
+    endTime: data.end_time,
     location: data.location,
     link: data.link,
     type: data.type,
@@ -157,3 +160,4 @@ function mapActivity(data: any): Activity {
     createdAt: data.created_at,
   };
 }
+

@@ -24,6 +24,7 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
   const [time, setTime] = useState("");
+  const [endTime, setEndTime] = useState("");
   const [location, setLocation] = useState("");
   const [link, setLink] = useState("");
   const [type, setType] = useState<Activity["type"]>("event");
@@ -58,6 +59,7 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
     setDescription("");
     setDate("");
     setTime("");
+    setEndTime("");
     setLocation("");
     setLink("");
     setType("event");
@@ -86,6 +88,7 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
       description: description || undefined,
       date,
       time: time || undefined,
+      endTime: endTime || undefined,
       location: location || undefined,
       link: link || undefined,
       type,
@@ -238,19 +241,19 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
               required
             />
           </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Date</label>
+            <input
+              type="date"
+              className="input mt-1"
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              required
+            />
+          </div>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-slate-700">Date</label>
-              <input
-                type="date"
-                className="input mt-1"
-                value={date}
-                onChange={(e) => setDate(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-slate-700">Time</label>
+              <label className="block text-sm font-medium text-slate-700">Start time</label>
               <input
                 type="time"
                 className="input mt-1"
@@ -258,6 +261,25 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
                 onChange={(e) => setTime(e.target.value)}
               />
             </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">End time (optional)</label>
+              <input
+                type="time"
+                className="input mt-1"
+                value={endTime}
+                onChange={(e) => setEndTime(e.target.value)}
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Location (optional)</label>
+            <input
+              type="text"
+              className="input mt-1"
+              placeholder="e.g. Gulf Shores, AL"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
           </div>
         </>
       )}
