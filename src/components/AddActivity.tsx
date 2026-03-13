@@ -42,7 +42,7 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
     const timeout = setTimeout(async () => {
       setCalculatingDrive(true);
       try {
-        const res = await fetch(`/api/drive-time?origin=${encodeURIComponent(departureLocation)}&destination=${encodeURIComponent(arrivalLocation)}`);
+        const res = await fetch("/api/drive-time?origin=" + encodeURIComponent(departureLocation) + "&destination=" + encodeURIComponent(arrivalLocation));
         const data = await res.json();
         if (data.duration) setDriveTime(data.duration);
         else setDriveTime("");
@@ -79,8 +79,8 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
 
     let finalTitle = title;
     if (type === "travel") {
-      if (travelSubtype === "drive") finalTitle = `Drive: ${departureLocation} → ${arrivalLocation}`;
-      if (travelSubtype === "flight") finalTitle = `Flight ${flightNumber}: ${departureLocation} → ${arrivalLocation}`;
+      if (travelSubtype === "drive") finalTitle = "Drive: " + departureLocation + " to " + arrivalLocation;
+      if (travelSubtype === "flight") finalTitle = "Flight " + flightNumber + ": " + departureLocation + " to " + arrivalLocation;
       if (travelSubtype === "other") finalTitle = title;
     }
 
@@ -137,15 +137,15 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
           <label className="block text-sm font-medium text-slate-700">Travel type</label>
           <div className="mt-2 flex gap-3">
             {[
-              { value: "flight", label: "✈️ Flight" },
-              { value: "drive", label: "🚗 Drive" },
-              { value: "other", label: "🚌 Other" },
+              { value: "flight", label: "Flight" },
+              { value: "drive", label: "Drive" },
+              { value: "other", label: "Other" },
             ].map((t) => (
               <button
                 key={t.value}
                 type="button"
                 onClick={() => setTravelSubtype(t.value as "flight" | "drive" | "other")}
-                className={`rounded-xl border-2 px-4 py-2 text-sm font-medium transition ${travelSubtype === t.value ? "border-sky-400 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-600 hover:border-sky-200"}`}
+                className={"rounded-xl border-2 px-4 py-2 text-sm font-medium transition " + (travelSubtype === t.value ? "border-sky-400 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-600 hover:border-sky-200")}
               >
                 {t.label}
               </button>
@@ -200,9 +200,9 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
           {travelSubtype === "drive" && (
             <div className="rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-700">
               {calculatingDrive
-                ? "🚗 Calculating drive time..."
+                ? "Calculating drive time..."
                 : driveTime
-                ? `🚗 Est. drive time: ${driveTime}`
+                ? "Est. drive time: " + driveTime
                 : "Enter locations above to calculate drive time"}
             </div>
           )}
@@ -230,7 +230,6 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
         </>
       )}
 
-      {/* Stay fields */}
       {type === "stay" && (
         <>
           <div>
@@ -289,7 +288,6 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
         </>
       )}
 
-      {/* All other non-travel, non-stay fields */}
       {(type !== "travel" || travelSubtype === "other") && type !== "stay" && (
         <>
           <div>
