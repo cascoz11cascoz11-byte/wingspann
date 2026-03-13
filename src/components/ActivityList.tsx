@@ -308,7 +308,7 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
 
                     {activity.travelSubtype === "flight" && (activity.departureLocation || activity.arrivalLocation) && (
                       <div className="mt-2 rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-800">
-                        ✈️ {activity.departureLocation} → {activity.arrivalLocation}
+                        ✈️ {activity.departureLocation} to {activity.arrivalLocation}
                         {activity.time && ` · Departs ${formatTime(activity.time)}`}
                         {activity.arrivalTime && ` · Arrives ${formatTime(activity.arrivalTime)}`}
                       </div>
