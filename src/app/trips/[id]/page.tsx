@@ -111,7 +111,7 @@ export default function TripDetailPage() {
                 stays={trip.activities.filter((a) => a.type === "stay")}
                 onAdded={refreshTrip}
               />
-              />
+              
               <AddActivity tripId={trip.id} onAdded={refreshTrip} />
             </div>
           </div>
