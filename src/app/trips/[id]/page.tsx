@@ -103,11 +103,14 @@ export default function TripDetailPage() {
           <div className="mb-4 flex items-center justify-between">
             <h2 className="font-display text-lg font-semibold text-sky-700">Itinerary</h2>
             <div className="flex gap-2">
-              <ActivityFinder
+            <ActivityFinder
                 tripId={trip.id}
                 tripDestination={trip.destination}
                 tripStartDate={trip.startDate}
+                tripEndDate={trip.endDate}
+                stays={trip.activities.filter((a) => a.type === "stay")}
                 onAdded={refreshTrip}
+              />
               />
               <AddActivity tripId={trip.id} onAdded={refreshTrip} />
             </div>

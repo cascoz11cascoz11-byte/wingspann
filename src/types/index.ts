@@ -13,6 +13,7 @@ export interface Activity {
   date: string;
   time?: string;
   endTime?: string;
+  checkOutDate?: string;
   location?: string;
   link?: string;
   type: "event" | "meal" | "travel" | "accommodation" | "stay" | "other";
