@@ -13,7 +13,6 @@ const ACTIVITY_TYPES: { value: Activity["type"]; label: string }[] = [
   { value: "event", label: "Event" },
   { value: "meal", label: "Meal" },
   { value: "travel", label: "Travel" },
-  { value: "accommodation", label: "Accommodations" },
   { value: "stay", label: "Stay" },
   { value: "other", label: "Other" },
 ];
@@ -23,6 +22,7 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
+  const [checkOutDate, setCheckOutDate] = useState("");
   const [time, setTime] = useState("");
   const [endTime, setEndTime] = useState("");
   const [location, setLocation] = useState("");
@@ -58,6 +58,7 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
     setTitle("");
     setDescription("");
     setDate("");
+    setCheckOutDate("");
     setTime("");
     setEndTime("");
     setLocation("");
@@ -87,6 +88,7 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
       title: finalTitle,
       description: description || undefined,
       date,
+      checkOutDate: type === "stay" ? checkOutDate || undefined : undefined,
       time: time || undefined,
       endTime: endTime || undefined,
       location: location || undefined,
@@ -228,7 +230,67 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
         </>
       )}
 
-      {(type !== "travel" || travelSubtype === "other") && (
+      {/* Stay fields */}
+      {type === "stay" && (
+        <>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Name</label>
+            <input
+              type="text"
+              className="input mt-1"
+              placeholder="e.g. Beach House, Airbnb Santiago"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Location</label>
+            <input
+              type="text"
+              className="input mt-1"
+              placeholder="e.g. Santiago, Chile"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Check in</label>
+              <input
+                type="date"
+                className="input mt-1"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Check out</label>
+              <input
+                type="date"
+                className="input mt-1"
+                value={checkOutDate}
+                onChange={(e) => setCheckOutDate(e.target.value)}
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Link (optional)</label>
+            <input
+              type="text"
+              className="input mt-1"
+              placeholder="Airbnb, VRBO, hotel link..."
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+            />
+          </div>
+        </>
+      )}
+
+      {/* All other non-travel, non-stay fields */}
+      {(type !== "travel" || travelSubtype === "other") && type !== "stay" && (
         <>
           <div>
             <label className="block text-sm font-medium text-slate-700">Title</label>
@@ -297,27 +359,30 @@ export function AddActivity({ tripId, onAdded }: AddActivityProps) {
         </div>
       )}
 
-      <div>
-        <label className="block text-sm font-medium text-slate-700">Description (optional)</label>
-        <textarea
-          rows={2}
-          className="input mt-1 resize-none"
-          placeholder="Details..."
-          value={description}
-          onChange={(e) => setDescription(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block text-sm font-medium text-slate-700">Link (optional)</label>
-        <input
-          type="text"
-          className="input mt-1"
-          placeholder="Paste a URL or leave blank"
-          value={link}
-          onChange={(e) => setLink(e.target.value)}
-        />
-      </div>
+      {type !== "stay" && (
+        <>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Description (optional)</label>
+            <textarea
+              rows={2}
+              className="input mt-1 resize-none"
+              placeholder="Details..."
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Link (optional)</label>
+            <input
+              type="text"
+              className="input mt-1"
+              placeholder="Paste a URL or leave blank"
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+            />
+          </div>
+        </>
+      )}
 
       <div className="flex gap-2 pt-2">
         <button type="submit" className="btn-primary text-sm" disabled={saving}>
