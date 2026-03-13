@@ -86,7 +86,9 @@ async function searchTicketmaster(classificationName: string, category: string, 
         category,
         description: e.info ?? e.pleaseNote ?? classificationName + " event",
         date: dateInfo?.localDate
-          ? new Date(dateInfo.localDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) + (dateInfo.localTime ? " at " + dateInfo.localTime.slice(0, 5) : "")
+        ? new Date(dateInfo.localDate + "T12:00:00").toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" }) + (dateInfo.localTime ? " at " + (() => { const [h, m] = dateInfo.localTime.split(":").map(Number); const ampm = h >= 12 ? "PM" : "AM"; return (h % 12 || 12) + ":" + m.toString().padStart(2, "0") + " " + ampm; })() : "")
+        
+        
           : "See details",
         venue: venue ? venue.name + ", " + venue.city?.name : undefined,
         price: priceRange ? "$" + Math.round(priceRange.min) + "-$" + Math.round(priceRange.max) : undefined,
