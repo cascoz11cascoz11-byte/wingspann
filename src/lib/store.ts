@@ -11,6 +11,31 @@ export interface Car {
   createdAt: string;
 }
 
+export interface WishlistItem {
+  id: string;
+  userId: string;
+  name: string;
+  category?: string;
+  description?: string;
+  venue?: string;
+  price?: string;
+  link?: string;
+  distance?: string;
+  createdAt: string;
+}
+
+export interface StandaloneEvent {
+  id: string;
+  createdBy: string;
+  title: string;
+  date: string;
+  time?: string;
+  location?: string;
+  inviteCode: string;
+  members: { id: string; name: string; email: string; status: string }[];
+  createdAt: string;
+}
+
 function db() {
   return createClient();
 }
@@ -151,6 +176,77 @@ export async function unassignSeat(carId: string, seatIndex: number): Promise<bo
   return !error;
 }
 
+// Wishlist
+export async function getWishlist(): Promise<WishlistItem[]> {
+  const userId = await getUserId();
+  if (!userId) return [];
+  const { data } = await db().from("wishlists").select("*").eq("user_id", userId).order("created_at", { ascending: false });
+  return (data ?? []).map(mapWishlistItem);
+}
+
+export async function addToWishlist(item: Omit<WishlistItem, "id" | "userId" | "createdAt">): Promise<WishlistItem | undefined> {
+  const userId = await getUserId();
+  if (!userId) return undefined;
+  const { data } = await db().from("wishlists").insert({
+    user_id: userId,
+    name: item.name,
+    category: item.category,
+    description: item.description,
+    venue: item.venue,
+    price: item.price,
+    link: item.link,
+    distance: item.distance,
+  }).select().single();
+  return data ? mapWishlistItem(data) : undefined;
+}
+
+export async function removeFromWishlist(id: string): Promise<boolean> {
+  const { error } = await db().from("wishlists").delete().eq("id", id);
+  return !error;
+}
+
+// Standalone events
+export async function getStandaloneEvents(): Promise<StandaloneEvent[]> {
+  const userId = await getUserId();
+  if (!userId) return [];
+  const { data } = await db().from("standalone_events").select("*, standalone_event_members(*)").eq("created_by", userId).order("date", { ascending: true });
+  return (data ?? []).map(mapStandaloneEvent);
+}
+
+export async function createStandaloneEvent(event: { title: string; date: string; time?: string; location?: string }): Promise<StandaloneEvent | undefined> {
+  const userId = await getUserId();
+  if (!userId) return undefined;
+  const { data } = await db().from("standalone_events").insert({
+    created_by: userId,
+    title: event.title,
+    date: event.date,
+    time: event.time,
+    location: event.location,
+  }).select("*, standalone_event_members(*)").single();
+  return data ? mapStandaloneEvent(data) : undefined;
+}
+
+export async function removeStandaloneEvent(id: string): Promise<boolean> {
+  const { error } = await db().from("standalone_events").delete().eq("id", id);
+  return !error;
+}
+
+export async function addStandaloneEventMember(eventId: string, name: string, email: string): Promise<boolean> {
+  const { error } = await db().from("standalone_event_members").insert({ event_id: eventId, name, email, status: "pending" });
+  return !error;
+}
+
+export async function getStandaloneEventByInviteCode(code: string): Promise<StandaloneEvent | undefined> {
+  const { data } = await db().from("standalone_events").select("*, standalone_event_members(*)").eq("invite_code", code).single();
+  return data ? mapStandaloneEvent(data) : undefined;
+}
+
+export async function updateStandaloneEventMemberStatus(eventId: string, email: string, status: "accepted" | "declined"): Promise<boolean> {
+  const { error } = await db().from("standalone_event_members").update({ status }).eq("event_id", eventId).eq("email", email);
+  return !error;
+}
+
+// Mappers
 function mapCar(data: any): Car {
   return {
     id: data.id,
@@ -161,6 +257,40 @@ function mapCar(data: any): Car {
     assignments: (data.car_assignments ?? []).map((a: any) => ({
       memberId: a.member_id,
       seatIndex: a.seat_index,
+    })),
+    createdAt: data.created_at,
+  };
+}
+
+function mapWishlistItem(data: any): WishlistItem {
+  return {
+    id: data.id,
+    userId: data.user_id,
+    name: data.name,
+    category: data.category,
+    description: data.description,
+    venue: data.venue,
+    price: data.price,
+    link: data.link,
+    distance: data.distance,
+    createdAt: data.created_at,
+  };
+}
+
+function mapStandaloneEvent(data: any): StandaloneEvent {
+  return {
+    id: data.id,
+    createdBy: data.created_by,
+    title: data.title,
+    date: data.date,
+    time: data.time,
+    location: data.location,
+    inviteCode: data.invite_code,
+    members: (data.standalone_event_members ?? []).map((m: any) => ({
+      id: m.id,
+      name: m.name,
+      email: m.email,
+      status: m.status,
     })),
     createdAt: data.created_at,
   };
