@@ -15,8 +15,10 @@ export interface WishlistItem {
   id: string;
   userId: string;
   name: string;
+  type: "activity" | "restaurant" | "stay" | "destination";
   category?: string;
   description?: string;
+  notes?: string;
   venue?: string;
   price?: string;
   link?: string;
@@ -190,8 +192,10 @@ export async function addToWishlist(item: Omit<WishlistItem, "id" | "userId" | "
   const { data } = await db().from("wishlists").insert({
     user_id: userId,
     name: item.name,
+    type: item.type ?? "activity",
     category: item.category,
     description: item.description,
+    notes: item.notes,
     venue: item.venue,
     price: item.price,
     link: item.link,
@@ -267,8 +271,10 @@ function mapWishlistItem(data: any): WishlistItem {
     id: data.id,
     userId: data.user_id,
     name: data.name,
+    type: data.type ?? "activity",
     category: data.category,
     description: data.description,
+    notes: data.notes,
     venue: data.venue,
     price: data.price,
     link: data.link,
