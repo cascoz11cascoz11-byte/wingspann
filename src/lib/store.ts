@@ -487,4 +487,3 @@ function mapBoardItem(data: any, userId?: string): BoardItem {
     createdAt: data.created_at,
   };
 }
-}
