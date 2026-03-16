@@ -1,0 +1,11 @@
+path = '/Users/cassidyspann/Documents/App/src/components/HomeActivityFinder.tsx'
+content = open(path).read()
+print("BEFORE fix, around pos of issue:")
+idx = content.find('  }\n  return (')
+print(repr(content[idx-20:idx+30]))
+content = content.replace('  }\n  return (', '  }\n\n  return (')
+idx2 = content.find('  }\n\n  return (')
+print("AFTER fix:")
+print(repr(content[idx2-20:idx2+30]))
+open(path, 'w').write(content)
+print("Written!")
