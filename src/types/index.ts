@@ -40,4 +40,5 @@ export interface Trip {
   createdAt: string;
   createdBy: string;
   inviteCode?: string;
+  sourceBoardId?: string;
 }

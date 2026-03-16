@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { addActivity, getWishlist } from "@/lib/store";
+import { addActivity, getWishlist, getBoardItemsById } from "@/lib/store";
 import type { WishlistItem } from "@/lib/store";
 import type { Activity } from "@/types";
 
@@ -9,6 +9,7 @@ interface AddActivityProps {
   tripId: string;
   tripStartDate: string;
   tripEndDate: string;
+  sourceBoardId?: string;
   onAdded: () => void;
 }
 
@@ -45,7 +46,7 @@ function formatDateLabel(dateStr: string): string {
 
 type Tab = "new" | "wishlist";
 
-export function AddActivity({ tripId, tripStartDate, tripEndDate, onAdded }: AddActivityProps) {
+export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId, onAdded }: AddActivityProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("new");
 
@@ -96,7 +97,23 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, onAdded }: Add
 
   async function loadWishlist() {
     setWishlistLoading(true);
-    setWishlist(await getWishlist());
+    if (sourceBoardId) {
+      const items = await getBoardItemsById(sourceBoardId);
+      setWishlist(items.filter(i => i.type !== "destination").map(i => ({
+        id: i.id,
+        userId: "",
+        name: i.name,
+        type: i.type,
+        description: i.description,
+        notes: i.notes,
+        venue: i.venue,
+        price: i.price,
+        link: i.link,
+        createdAt: i.createdAt,
+      })));
+    } else {
+      setWishlist(await getWishlist());
+    }
     setWishlistLoading(false);
   }
 
@@ -186,7 +203,7 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, onAdded }: Add
                 ✏️ New activity
               </button>
               <button type="button" onClick={() => setTab("wishlist")} className={"pb-2 text-sm font-medium transition border-b-2 " + (tab === "wishlist" ? "border-sky-500 text-sky-600" : "border-transparent text-slate-500 hover:text-sky-500")}>
-                🌟 From wishlist
+                {sourceBoardId ? "🗺️ From board" : "🌟 From wishlist"}
               </button>
             </div>
 
@@ -331,20 +348,20 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, onAdded }: Add
               </form>
             )}
 
-            {/* Wishlist tab */}
+            {/* Wishlist/Board tab */}
             {tab === "wishlist" && (
               <div className="space-y-4">
                 {wishlistLoading ? (
-                  <p className="text-sm text-slate-500 text-center py-6">Loading wishlist...</p>
+                  <p className="text-sm text-slate-500 text-center py-6">Loading...</p>
                 ) : wishlist.length === 0 ? (
                   <div className="text-center py-6 space-y-2">
-                    <p className="text-2xl">🌟</p>
-                    <p className="text-sm text-slate-500">Your wishlist is empty!</p>
-                    <p className="text-xs text-slate-400">Add things to your wishlist first, then you can add them to trips.</p>
+                    <p className="text-2xl">{sourceBoardId ? "🗺️" : "🌟"}</p>
+                    <p className="text-sm text-slate-500">{sourceBoardId ? "No items on this board yet!" : "Your wishlist is empty!"}</p>
+                    <p className="text-xs text-slate-400">{sourceBoardId ? "Add ideas to the board first." : "Add things to your wishlist first, then you can add them to trips."}</p>
                   </div>
                 ) : (
                   <>
-                    <p className="text-xs text-slate-500">Pick something from your wishlist to add to this trip:</p>
+                    <p className="text-xs text-slate-500">{sourceBoardId ? "Pick an idea from this trip's board:" : "Pick something from your wishlist:"}</p>
                     <div className="space-y-2 max-h-48 overflow-y-auto">
                       {wishlist.filter(i => i.type !== "destination").map((item) => {
                         const config = TYPE_CONFIG[item.type];

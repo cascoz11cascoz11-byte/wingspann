@@ -112,7 +112,8 @@ export default function TripDetailPage() {
                 onAdded={refreshTrip}
               />
               
-              <AddActivity tripId={trip.id} tripStartDate={trip.startDate} tripEndDate={trip.endDate} onAdded={refreshTrip} />
+              <AddActivity tripId={trip.id} tripStartDate={trip.startDate} tripEndDate={trip.endDate} sourceBoardId={trip.sourceBoardId} onAdded={refreshTrip} />
+            
             </div>
           </div>
           <ActivityList tripId={trip.id} activities={trip.activities} members={trip.members} onUpdate={refreshTrip} />

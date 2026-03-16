@@ -118,6 +118,7 @@ export default function BoardPage() {
       startDate: convertStartDate,
       endDate: convertEndDate,
       createdBy: board.createdBy,
+      sourceBoardId: board.id,
     });
     if (trip) window.location.href = "/trips/" + trip.id;
     setConverting(false);
