@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
 import { getBoard, getBoardItems, addBoardItem, removeBoardItem, toggleBoardItemHeart, createTrip } from "@/lib/store";
 import type { Board, BoardItem } from "@/lib/store";
+import { createClient } from "@/lib/supabase";
 import Link from "next/link";
 
 const TYPE_CONFIG = {
@@ -29,6 +30,8 @@ export default function BoardPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
+  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
   // Add form
   const [name, setName] = useState("");
@@ -41,6 +44,15 @@ export default function BoardPage() {
   const [addedByName, setAddedByName] = useState("");
   const [saving, setSaving] = useState(false);
 
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  useEffect(() => { load(); }, [id]);
+
+  useEffect(() => {
+    createClient().auth.getUser().then(({ data }) => {
+      setCurrentUserId(data.user?.id ?? null);
+    });
+  }, []);
+
   async function load() {
     setLoading(true);
     const [b, i] = await Promise.all([getBoard(id), getBoardItems(id)]);
@@ -48,8 +60,6 @@ export default function BoardPage() {
     setItems(i);
     setLoading(false);
   }
-
-  useEffect(() => { load(); }, [id]);
 
   function getSorted(): BoardItem[] {
     if (sort === "hearts") return [...items].sort((a, b) => b.heartCount - a.heartCount);
@@ -74,11 +84,20 @@ export default function BoardPage() {
       heartCount: item.heartedByMe ? item.heartCount - 1 : item.heartCount + 1,
       heartedByMe: !item.heartedByMe,
     } : item));
+    if (selectedItem?.id === itemId) {
+      setSelectedItem((prev) => prev ? {
+        ...prev,
+        heartCount: prev.heartedByMe ? prev.heartCount - 1 : prev.heartCount + 1,
+        heartedByMe: !prev.heartedByMe,
+      } : null);
+    }
   }
 
   async function handleRemove(itemId: string) {
+    if (!confirm("Are you sure you want to remove this?")) return;
     await removeBoardItem(itemId);
     setItems((prev) => prev.filter((i) => i.id !== itemId));
+    if (selectedItem?.id === itemId) setSelectedItem(null);
   }
 
   async function handleConvertToTrip() {
@@ -113,7 +132,7 @@ export default function BoardPage() {
       <div className={"bg-gradient-to-br " + board.gradient + " rounded-2xl p-6 text-white space-y-2"}>
         <div className="flex items-start justify-between">
           <span className="text-5xl drop-shadow">{board.emoji}</span>
-          <Link href="/boards" className="text-white/70 hover:text-white text-sm">← Boards</Link>
+          <Link href="/wishlist" className="text-white/70 hover:text-white text-sm">← Wishlist</Link>
         </div>
         <h1 className="font-display text-2xl font-bold">{board.title}</h1>
         {board.description && <p className="text-white/80 text-sm">{board.description}</p>}
@@ -131,7 +150,7 @@ export default function BoardPage() {
       </div>
 
       {/* Sort tabs */}
-      <div className="flex gap-2">
+      <div className="flex gap-2 flex-wrap">
         {([["hearts", "❤️ Most hearted"], ["type", "📂 By type"], ["recent", "🕐 Recently added"]] as [SortMode, string][]).map(([s, label]) => (
           <button key={s} type="button" onClick={() => setSort(s)} className={"rounded-full px-3 py-1.5 text-xs font-medium border-2 transition " + (sort === s ? "border-sky-400 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-500 hover:border-sky-200")}>
             {label}
@@ -151,8 +170,13 @@ export default function BoardPage() {
         <div className="space-y-3">
           {sorted.map((item) => {
             const config = TYPE_CONFIG[item.type];
+            const isMyItem = currentUserId && item.addedBy === currentUserId;
             return (
-              <div key={item.id} className="card p-4 space-y-2">
+              <div
+                key={item.id}
+                className="card p-4 space-y-2 cursor-pointer hover:border-sky-200 transition"
+                onClick={() => setSelectedItem(item)}
+              >
                 <div className="flex items-start justify-between gap-3">
                   <div className="space-y-1 flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
@@ -162,27 +186,75 @@ export default function BoardPage() {
                       <span className="text-xs text-slate-300">{formatDate(item.createdAt)}</span>
                     </div>
                     <p className="font-medium text-slate-800">{item.name}</p>
-                    {item.description && <p className="text-xs text-slate-500">{item.description}</p>}
-                    {item.notes && <p className="text-xs text-amber-600 bg-amber-50 rounded-lg px-2 py-1">📝 {item.notes}</p>}
                     {item.venue && <p className="text-xs text-slate-400">📍 {item.venue}</p>}
                   </div>
-                  <div className="flex flex-col gap-2 shrink-0 items-end">
+                  <div className="flex flex-col gap-2 shrink-0 items-end" onClick={(e) => e.stopPropagation()}>
                     <button type="button" onClick={() => handleHeart(item.id)} className={"rounded-xl px-3 py-1.5 text-xs font-medium border-2 transition flex items-center gap-1 " + (item.heartedByMe ? "border-rose-300 bg-rose-50 text-rose-600" : "border-slate-200 text-slate-500 hover:border-rose-200 hover:text-rose-400")}>
                       {item.heartedByMe ? "❤️" : "🤍"} {item.heartCount}
                     </button>
-                    {item.link && (
-                      <a href={item.link} target="_blank" rel="noopener noreferrer" className="rounded-xl px-3 py-1.5 text-xs font-medium border border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 transition">
-                        Details
-                      </a>
+                    {isMyItem && (
+                      <button type="button" onClick={() => handleRemove(item.id)} className="text-xs text-red-300 hover:text-red-500 transition">
+                        Remove
+                      </button>
                     )}
-                    <button type="button" onClick={() => handleRemove(item.id)} className="text-xs text-red-300 hover:text-red-500 transition">
-                      Remove
-                    </button>
                   </div>
                 </div>
               </div>
             );
           })}
+        </div>
+      )}
+
+      {/* Item detail popover */}
+      {selectedItem && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setSelectedItem(null)} />
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex items-center gap-2 flex-wrap">
+                <span className={"text-xs font-medium rounded-full px-2 py-0.5 " + TYPE_CONFIG[selectedItem.type].color}>
+                  {TYPE_CONFIG[selectedItem.type].emoji} {TYPE_CONFIG[selectedItem.type].label}
+                </span>
+                {selectedItem.price && <span className="text-xs text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5">{selectedItem.price}</span>}
+              </div>
+              <button type="button" onClick={() => setSelectedItem(null)} className="text-slate-400 hover:text-slate-600 text-xl leading-none shrink-0">✕</button>
+            </div>
+
+            <div className="space-y-2">
+              <h3 className="font-display text-lg font-semibold text-slate-800">{selectedItem.name}</h3>
+              {selectedItem.venue && <p className="text-sm text-slate-500">📍 {selectedItem.venue}</p>}
+              {selectedItem.description && <p className="text-sm text-slate-600">{selectedItem.description}</p>}
+              {selectedItem.notes && (
+                <div className="rounded-xl bg-amber-50 border border-amber-100 px-3 py-2">
+                  <p className="text-xs font-medium text-amber-600 mb-0.5">📝 Notes</p>
+                  <p className="text-sm text-amber-800">{selectedItem.notes}</p>
+                </div>
+              )}
+              {selectedItem.addedByName && (
+                <p className="text-xs text-slate-400">Added by {selectedItem.addedByName} · {formatDate(selectedItem.createdAt)}</p>
+              )}
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => handleHeart(selectedItem.id)}
+                className={"rounded-xl px-4 py-2 text-sm font-medium border-2 transition flex items-center gap-1.5 " + (selectedItem.heartedByMe ? "border-rose-300 bg-rose-50 text-rose-600" : "border-slate-200 text-slate-500 hover:border-rose-200 hover:text-rose-400")}
+              >
+                {selectedItem.heartedByMe ? "❤️" : "🤍"} {selectedItem.heartCount} {selectedItem.heartCount === 1 ? "heart" : "hearts"}
+              </button>
+              {selectedItem.link && (
+                <a href={selectedItem.link} target="_blank" rel="noopener noreferrer" className="rounded-xl px-4 py-2 text-sm font-medium border border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 transition">
+                  🔗 Details
+                </a>
+              )}
+              {currentUserId && selectedItem.addedBy === currentUserId && (
+                <button type="button" onClick={() => handleRemove(selectedItem.id)} className="rounded-xl px-4 py-2 text-sm font-medium border border-red-100 text-red-400 hover:border-red-300 hover:text-red-600 transition ml-auto">
+                  Remove
+                </button>
+              )}
+            </div>
+          </div>
         </div>
       )}
 
@@ -214,7 +286,7 @@ export default function BoardPage() {
                 <label className="block text-sm font-medium text-slate-700 mb-1">Name</label>
                 <input type="text" className="input" placeholder={type === "stay" ? "e.g. Airbnb in Providencia" : type === "restaurant" ? "e.g. Mercado Central" : type === "destination" ? "e.g. Valparaíso day trip" : "e.g. Cooking class"} value={name} onChange={e => setName(e.target.value)} required autoFocus />
               </div>
-              {(type === "stay" || type === "restaurant" || type === "activity") && (
+              {type !== "destination" && (
                 <div>
                   <label className="block text-sm font-medium text-slate-700 mb-1">Location (optional)</label>
                   <input type="text" className="input" placeholder="Address or neighborhood" value={venue} onChange={e => setVenue(e.target.value)} />
