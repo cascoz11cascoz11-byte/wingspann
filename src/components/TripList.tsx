@@ -74,6 +74,11 @@ export function TripList() {
                 <span className={"rounded-full px-2.5 py-0.5 text-xs font-medium shrink-0 " + countdown.color}>
                   {countdown.label}
                 </span>
+                {trip.isInvited && (
+                <span className="rounded-full bg-violet-100 text-violet-700 px-2.5 py-0.5 text-xs font-medium shrink-0">
+                  Invited
+                </span>
+              )}
               </div>
               <p className="mt-1 text-sm text-slate-600">{trip.destination}</p>
               <p className="mt-2 text-xs text-slate-500">{formatDateRange(trip.startDate, trip.endDate)}</p>

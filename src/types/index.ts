@@ -41,4 +41,5 @@ export interface Trip {
   createdBy: string;
   inviteCode?: string;
   sourceBoardId?: string;
+  isInvited?: boolean;
 }

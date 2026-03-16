@@ -77,10 +77,37 @@ async function getUserId(): Promise<string | undefined> {
 }
 
 export async function getTrips(): Promise<Trip[]> {
-  const userId = await getUserId();
-  if (!userId) return [];
-  const { data: trips } = await db().from("trips").select("*, members(*), activities(*, activity_participants(*))").eq("user_id", userId).order("created_at", { ascending: false });
-  return (trips ?? []).map(mapTrip);
+  const supabase = db();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return [];
+
+  // Get trips you created
+  const { data: ownedTrips } = await supabase
+    .from("trips")
+    .select("*, members(*), activities(*, activity_participants(*))")
+    .eq("user_id", user.id)
+    .order("created_at", { ascending: false });
+
+  // Get trips you were invited to via email
+  const { data: memberRows } = await supabase
+    .from("members")
+    .select("trip_id")
+    .eq("email", user.email ?? "");
+
+  const invitedTripIds = (memberRows ?? []).map((m: any) => m.trip_id).filter(Boolean);
+
+  let invitedTrips: Trip[] = [];
+  if (invitedTripIds.length > 0) {
+    const { data } = await supabase
+      .from("trips")
+      .select("*, members(*), activities(*, activity_participants(*))")
+      .in("id", invitedTripIds)
+      .not("user_id", "eq", user.id);
+    invitedTrips = (data ?? []).map((t: any) => ({ ...mapTrip(t), isInvited: true }));
+  }
+
+  const owned = (ownedTrips ?? []).map(mapTrip);
+  return [...owned, ...invitedTrips].sort((a, b) => a.startDate.localeCompare(b.startDate));
 }
 
 export async function getTrip(id: string): Promise<Trip | undefined> {
