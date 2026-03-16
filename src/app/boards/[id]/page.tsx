@@ -30,6 +30,9 @@ export default function BoardPage() {
   const [addOpen, setAddOpen] = useState(false);
   const [copied, setCopied] = useState(false);
   const [converting, setConverting] = useState(false);
+  const [convertOpen, setConvertOpen] = useState(false);
+  const [convertStartDate, setConvertStartDate] = useState("");
+  const [convertEndDate, setConvertEndDate] = useState("");
   const [selectedItem, setSelectedItem] = useState<BoardItem | null>(null);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
 
@@ -70,8 +73,7 @@ export default function BoardPage() {
     e.preventDefault();
     setSaving(true);
     const item = await addBoardItem(id, {
-      name,
-      type,
+      name, type,
       description: description || undefined,
       notes: notes || undefined,
       venue: venue || undefined,
@@ -113,8 +115,8 @@ export default function BoardPage() {
     const trip = await createTrip({
       name: board.title,
       destination: board.title,
-      startDate: new Date().toISOString().split("T")[0],
-      endDate: new Date().toISOString().split("T")[0],
+      startDate: convertStartDate,
+      endDate: convertEndDate,
       createdBy: board.createdBy,
     });
     if (trip) window.location.href = "/trips/" + trip.id;
@@ -150,8 +152,8 @@ export default function BoardPage() {
           <button type="button" onClick={() => setAddOpen(true)} className="rounded-xl bg-white/20 hover:bg-white/30 px-3 py-1.5 text-xs font-medium transition">
             + Add idea
           </button>
-          <button type="button" onClick={handleConvertToTrip} disabled={converting} className="rounded-xl bg-white/20 hover:bg-white/30 px-3 py-1.5 text-xs font-medium transition">
-            {converting ? "Creating..." : "✈️ Turn into trip"}
+          <button type="button" onClick={() => setConvertOpen(true)} className="rounded-xl bg-white/20 hover:bg-white/30 px-3 py-1.5 text-xs font-medium transition">
+            ✈️ Turn into trip
           </button>
         </div>
       </div>
@@ -258,6 +260,41 @@ export default function BoardPage() {
                   Remove
                 </button>
               )}
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Convert to trip modal */}
+      {convertOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setConvertOpen(false)} />
+          <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4">
+            <div className="flex items-center justify-between">
+              <h3 className="font-display text-lg font-semibold text-sky-700">✈️ Turn into trip</h3>
+              <button type="button" onClick={() => setConvertOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
+            </div>
+            <p className="text-sm text-slate-500">When are you going to <span className="font-medium text-slate-700">{board.title}</span>?</p>
+            <div className="space-y-3">
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Start date</label>
+                <input type="date" className="input" value={convertStartDate} onChange={e => setConvertStartDate(e.target.value)} />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-slate-700 mb-1">End date</label>
+                <input type="date" className="input" value={convertEndDate} onChange={e => setConvertEndDate(e.target.value)} />
+              </div>
+            </div>
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => { setConvertOpen(false); handleConvertToTrip(); }}
+                disabled={!convertStartDate || !convertEndDate || converting}
+                className="btn-primary text-sm"
+              >
+                {converting ? "Creating..." : "Create trip"}
+              </button>
+              <button type="button" onClick={() => setConvertOpen(false)} className="btn-secondary text-sm">Cancel</button>
             </div>
           </div>
         </div>
