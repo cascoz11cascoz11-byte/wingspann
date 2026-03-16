@@ -41,7 +41,6 @@ export default function BoardPage() {
   const [venue, setVenue] = useState("");
   const [price, setPrice] = useState("");
   const [link, setLink] = useState("");
-  const [addedByName, setAddedByName] = useState("");
   const [saving, setSaving] = useState(false);
 
   // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,9 +69,17 @@ export default function BoardPage() {
   async function handleAdd(e: React.FormEvent) {
     e.preventDefault();
     setSaving(true);
-    const item = await addBoardItem(id, { name, type, description: description || undefined, notes: notes || undefined, venue: venue || undefined, price: price || undefined, link: link || undefined, addedByName: addedByName || undefined });
+    const item = await addBoardItem(id, {
+      name,
+      type,
+      description: description || undefined,
+      notes: notes || undefined,
+      venue: venue || undefined,
+      price: price || undefined,
+      link: link || undefined,
+    });
     if (item) setItems((prev) => [item, ...prev]);
-    setName(""); setType("activity"); setDescription(""); setNotes(""); setVenue(""); setPrice(""); setLink(""); setAddedByName("");
+    setName(""); setType("activity"); setDescription(""); setNotes(""); setVenue(""); setPrice(""); setLink("");
     setAddOpen(false);
     setSaving(false);
   }
@@ -219,7 +226,6 @@ export default function BoardPage() {
               </div>
               <button type="button" onClick={() => setSelectedItem(null)} className="text-slate-400 hover:text-slate-600 text-xl leading-none shrink-0">✕</button>
             </div>
-
             <div className="space-y-2">
               <h3 className="font-display text-lg font-semibold text-slate-800">{selectedItem.name}</h3>
               {selectedItem.venue && <p className="text-sm text-slate-500">📍 {selectedItem.venue}</p>}
@@ -234,8 +240,7 @@ export default function BoardPage() {
                 <p className="text-xs text-slate-400">Added by {selectedItem.addedByName} · {formatDate(selectedItem.createdAt)}</p>
               )}
             </div>
-
-            <div className="flex gap-2 pt-1">
+            <div className="flex gap-2 pt-1 flex-wrap">
               <button
                 type="button"
                 onClick={() => handleHeart(selectedItem.id)}
@@ -268,10 +273,6 @@ export default function BoardPage() {
               <button type="button" onClick={() => setAddOpen(false)} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
             </div>
             <form onSubmit={handleAdd} className="space-y-3">
-              <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Your name (optional)</label>
-                <input type="text" className="input" placeholder="So others know who added this" value={addedByName} onChange={e => setAddedByName(e.target.value)} />
-              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Type</label>
                 <div className="grid grid-cols-2 gap-2">

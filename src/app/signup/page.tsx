@@ -6,6 +6,7 @@ import Link from "next/link";
 
 export default function SignupPage() {
   const router = useRouter();
+  const [displayName, setDisplayName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -16,8 +17,13 @@ export default function SignupPage() {
     setLoading(true);
     setError("");
     const supabase = createClient();
-   const { data, error } = await supabase.auth.signUp({ email, password });
-console.log("signup result:", data, error);
+    const { error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: { display_name: displayName },
+      },
+    });
     if (error) {
       setError(error.message);
       setLoading(false);
@@ -33,6 +39,10 @@ console.log("signup result:", data, error);
         <h1 className="font-display text-3xl font-bold text-sky-600">Wingspann ✈️</h1>
         <p className="mt-1 text-slate-500">Create your account</p>
         <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Your name</label>
+            <input type="text" className="input mt-1" placeholder="e.g. Cassidy" value={displayName} onChange={(e) => setDisplayName(e.target.value)} required />
+          </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Email</label>
             <input type="email" className="input mt-1" value={email} onChange={(e) => setEmail(e.target.value)} required />

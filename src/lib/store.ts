@@ -423,10 +423,16 @@ export async function getBoardItems(boardId: string): Promise<BoardItem[]> {
 
 export async function addBoardItem(boardId: string, item: { name: string; type: BoardItem["type"]; description?: string; notes?: string; venue?: string; price?: string; link?: string; addedByName?: string }): Promise<BoardItem | undefined> {
   const userId = await getUserId();
-  const { data } = await db().from("board_items").insert({
+  const supabase = db();
+  let displayName = item.addedByName;
+  if (!displayName && userId) {
+    const { data: { user } } = await supabase.auth.getUser();
+    displayName = user?.user_metadata?.display_name ?? user?.email?.split("@")[0];
+  }
+  const { data } = await supabase.from("board_items").insert({
     board_id: boardId,
     added_by: userId,
-    added_by_name: item.addedByName,
+    added_by_name: displayName,
     name: item.name,
     type: item.type,
     description: item.description,
