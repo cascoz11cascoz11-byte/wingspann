@@ -348,4 +348,141 @@ function mapActivity(data: any): Activity {
     participants: (data.activity_participants ?? []).map((p: any) => p.member_id),
     createdAt: data.created_at,
   };
+  // Boards
+export interface Board {
+  id: string;
+  createdBy: string;
+  title: string;
+  description?: string;
+  emoji?: string;
+  gradient?: string;
+  inviteCode: string;
+  itemCount?: number;
+  createdAt: string;
+}
+
+export interface BoardItem {
+  id: string;
+  boardId: string;
+  addedBy?: string;
+  addedByName?: string;
+  name: string;
+  type: "activity" | "restaurant" | "stay" | "destination";
+  description?: string;
+  notes?: string;
+  venue?: string;
+  price?: string;
+  link?: string;
+  heartCount: number;
+  heartedByMe: boolean;
+  createdAt: string;
+}
+
+export async function getBoards(): Promise<Board[]> {
+  const userId = await getUserId();
+  if (!userId) return [];
+  const { data } = await db().from("boards").select("*").eq("created_by", userId).order("created_at", { ascending: false });
+  return (data ?? []).map(mapBoard);
+}
+
+export async function getBoard(id: string): Promise<Board | undefined> {
+  const { data } = await db().from("boards").select("*").eq("id", id).single();
+  return data ? mapBoard(data) : undefined;
+}
+
+export async function getBoardByInviteCode(code: string): Promise<Board | undefined> {
+  const { data } = await db().from("boards").select("*").eq("invite_code", code).single();
+  return data ? mapBoard(data) : undefined;
+}
+
+export async function createBoard(board: { title: string; description?: string; emoji?: string; gradient?: string }): Promise<Board | undefined> {
+  const userId = await getUserId();
+  if (!userId) return undefined;
+  const { data } = await db().from("boards").insert({
+    created_by: userId,
+    title: board.title,
+    description: board.description,
+    emoji: board.emoji,
+    gradient: board.gradient,
+  }).select().single();
+  return data ? mapBoard(data) : undefined;
+}
+
+export async function deleteBoard(id: string): Promise<boolean> {
+  const { error } = await db().from("boards").delete().eq("id", id);
+  return !error;
+}
+
+export async function getBoardItems(boardId: string): Promise<BoardItem[]> {
+  const userId = await getUserId();
+  const { data } = await db().from("board_items").select("*, board_item_hearts(*)").eq("board_id", boardId).order("created_at", { ascending: false });
+  return (data ?? []).map((item: any) => mapBoardItem(item, userId));
+}
+
+export async function addBoardItem(boardId: string, item: { name: string; type: BoardItem["type"]; description?: string; notes?: string; venue?: string; price?: string; link?: string; addedByName?: string }): Promise<BoardItem | undefined> {
+  const userId = await getUserId();
+  const { data } = await db().from("board_items").insert({
+    board_id: boardId,
+    added_by: userId,
+    added_by_name: item.addedByName,
+    name: item.name,
+    type: item.type,
+    description: item.description,
+    notes: item.notes,
+    venue: item.venue,
+    price: item.price,
+    link: item.link,
+  }).select("*, board_item_hearts(*)").single();
+  return data ? mapBoardItem(data, userId) : undefined;
+}
+
+export async function removeBoardItem(id: string): Promise<boolean> {
+  const { error } = await db().from("board_items").delete().eq("id", id);
+  return !error;
+}
+
+export async function toggleBoardItemHeart(itemId: string): Promise<boolean> {
+  const userId = await getUserId();
+  if (!userId) return false;
+  const { data: existing } = await db().from("board_item_hearts").select("id").eq("item_id", itemId).eq("user_id", userId).single();
+  if (existing) {
+    await db().from("board_item_hearts").delete().eq("item_id", itemId).eq("user_id", userId);
+  } else {
+    await db().from("board_item_hearts").insert({ item_id: itemId, user_id: userId });
+  }
+  return true;
+}
+
+function mapBoard(data: any): Board {
+  return {
+    id: data.id,
+    createdBy: data.created_by,
+    title: data.title,
+    description: data.description,
+    emoji: data.emoji ?? "🗺️",
+    gradient: data.gradient ?? "from-sky-400 to-violet-500",
+    inviteCode: data.invite_code,
+    createdAt: data.created_at,
+  };
+}
+
+function mapBoardItem(data: any, userId?: string): BoardItem {
+  const hearts = data.board_item_hearts ?? [];
+  return {
+    id: data.id,
+    boardId: data.board_id,
+    addedBy: data.added_by,
+    addedByName: data.added_by_name,
+    name: data.name,
+    type: data.type ?? "activity",
+    description: data.description,
+    notes: data.notes,
+    venue: data.venue,
+    price: data.price,
+    link: data.link,
+    heartCount: hearts.length,
+    heartedByMe: userId ? hearts.some((h: any) => h.user_id === userId) : false,
+    createdAt: data.created_at,
+  };
+}
 }
