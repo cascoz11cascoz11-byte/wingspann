@@ -591,4 +591,4 @@ function mapExpense(data: any): Expense {
     })),
     createdAt: data.created_at,
   };
-}s
+}
