@@ -147,50 +147,6 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
   const activePill = "bg-sky-500 border-sky-500 text-white";
   const inactivePill = "border-slate-200 text-slate-600 hover:border-sky-300";
 
-  function ResultCard({ result, index, saved, saving, onSave, onShare }: {
-    result: Result; index: number; saved: boolean; saving: boolean;
-    onSave: () => void; onShare: () => void;
-  }) {
-    const cat = CATEGORIES.find(c => c.id === result.category);
-    const expanded = expandedIndexes.has(index);
-    const isLong = (result.description?.length ?? 0) > 100;
-    return (
-      <div className="rounded-xl border border-slate-200 p-4 space-y-2">
-        <div className="flex items-start justify-between gap-3">
-          <div className="space-y-1 flex-1 min-w-0">
-            <div className="flex items-center gap-2 flex-wrap">
-              {cat && <span className="text-xs font-medium text-sky-600 bg-sky-50 rounded-full px-2 py-0.5">{cat.label}</span>}
-              {result.date && <span className="text-xs text-amber-600 bg-amber-50 rounded-full px-2 py-0.5">{result.date}</span>}
-              {result.price && <span className="text-xs text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5">{result.price}</span>}
-              {result.distance && <span className="text-xs text-sky-500 bg-sky-50 rounded-full px-2 py-0.5">{result.distance}</span>}
-            </div>
-            <p className="font-medium text-slate-800 text-sm">{result.name}</p>
-            {result.description && (
-              <div>
-                <p className="text-xs text-slate-500">{isLong && !expanded ? result.description.slice(0, 100) + "..." : result.description}</p>
-                {isLong && <button type="button" onClick={() => toggleExpanded(index)} className="text-xs text-sky-500 hover:text-sky-700 mt-0.5">{expanded ? "Show less" : "Show more"}</button>}
-              </div>
-            )}
-            {result.venue && <p className="text-xs text-slate-400">{result.venue}</p>}
-          </div>
-          <div className="flex flex-col gap-2 shrink-0">
-            <button type="button" onClick={onSave} disabled={saved || saving} className={"rounded-xl px-3 py-2 text-xs font-medium transition " + (saved ? "bg-emerald-100 text-emerald-600 border border-emerald-200" : "btn-primary")}>
-              {saved ? "Saved!" : saving ? "Saving..." : "\u2b50 Save"}
-            </button>
-            <button type="button" onClick={onShare} className="rounded-xl px-3 py-2 text-xs font-medium border border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 transition">
-              Share
-            </button>
-            {result.link && (
-              <a href={result.link} target="_blank" rel="noopener noreferrer" className="rounded-xl px-3 py-2 text-xs font-medium text-center border border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 transition">
-                Details
-              </a>
-            )}
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="relative z-10">
       {shareToast && (
@@ -199,7 +155,7 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
         </div>
       )}
       <button type="button" onClick={() => setOpen(true)} className="btn-secondary text-sm whitespace-nowrap">
-        \u{1F971} I&apos;m Bored!
+        🥱 I&apos;m Bored!
       </button>
 
       {open && (
@@ -208,10 +164,10 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
           <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-display text-lg font-semibold text-sky-700">\u{1F971} Find Activities</h3>
+                <h3 className="font-display text-lg font-semibold text-sky-700">🥱 Find Activities</h3>
                 <p className="text-xs text-slate-500 mt-0.5">Finding things near you right now</p>
               </div>
-              <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 text-xl leading-none">\u2715</button>
+              <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
             </div>
 
             <div>
@@ -227,11 +183,11 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
 
             <div className="flex gap-2">
               <button type="button" onClick={search} disabled={loading} className="btn-primary flex-1 py-3">
-                {loading ? "Searching..." : "\u{1F50D} Find things to do"}
+                {loading ? "Searching..." : "🔍 Find things to do"}
               </button>
               {hasSearched && results.length > 0 && (
                 <button type="button" onClick={feelingLucky} className="btn-secondary px-4 py-3 text-sm whitespace-nowrap">
-                  \u{1F3B2} Feeling lucky
+                  🎲 Feeling lucky
                 </button>
               )}
             </div>
@@ -240,8 +196,26 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
 
             {luckyResult && (
               <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 space-y-2">
-                <p className="text-xs font-semibold text-amber-600 mb-1">\u{1F3B2} Your lucky pick!</p>
-                <ResultCard result={luckyResult} index={-1} saved={luckySaved} saving={savingIndex === -1} onSave={handleSaveLucky} onShare={() => handleShare(luckyResult)} />
+                <p className="text-xs font-semibold text-amber-600 mb-1">🎲 Your lucky pick!</p>
+                <div className="rounded-xl border border-slate-200 p-4 space-y-2">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="space-y-1 flex-1 min-w-0">
+                      <p className="font-medium text-slate-800 text-sm">{luckyResult.name}</p>
+                      {luckyResult.description && <p className="text-xs text-slate-500">{luckyResult.description.slice(0, 100)}</p>}
+                      {luckyResult.venue && <p className="text-xs text-slate-400">{luckyResult.venue}</p>}
+                    </div>
+                    <div className="flex flex-col gap-2 shrink-0">
+                      <button type="button" onClick={handleSaveLucky} disabled={luckySaved || savingIndex === -1} className={"rounded-xl px-3 py-2 text-xs font-medium transition " + (luckySaved ? "bg-emerald-100 text-emerald-600 border border-emerald-200" : "btn-primary")}>
+                        {luckySaved ? "Saved!" : savingIndex === -1 ? "Saving..." : "🌟 Save"}
+                      </button>
+                      {luckyResult.link && (
+                        <a href={luckyResult.link} target="_blank" rel="noopener noreferrer" className="rounded-xl px-3 py-2 text-xs font-medium text-center border border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 transition">
+                          Details
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
                 <button type="button" onClick={feelingLucky} className="text-xs text-amber-500 hover:text-amber-700">Try another</button>
               </div>
             )}
@@ -251,15 +225,45 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
                 {results.length === 0 ? (
                   <p className="text-sm text-slate-500 text-center py-4">No results found - try different categories!</p>
                 ) : results.map((result, index) => (
-                  <ResultCard
-                    key={index}
-                    result={result}
-                    index={index}
-                    saved={savedIndexes.has(index)}
-                    saving={savingIndex === index}
-                    onSave={() => handleSave(result, index)}
-                    onShare={() => handleShare(result)}
-                  />
+                  <div key={index} className="rounded-xl border border-slate-200 p-4 space-y-2">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="space-y-1 flex-1 min-w-0">
+                        <div className="flex items-center gap-2 flex-wrap">
+                          {CATEGORIES.find(c => c.id === result.category) && <span className="text-xs font-medium text-sky-600 bg-sky-50 rounded-full px-2 py-0.5">{CATEGORIES.find(c => c.id === result.category)!.label}</span>}
+                          {result.date && <span className="text-xs text-amber-600 bg-amber-50 rounded-full px-2 py-0.5">{result.date}</span>}
+                          {result.price && <span className="text-xs text-emerald-600 bg-emerald-50 rounded-full px-2 py-0.5">{result.price}</span>}
+                          {result.distance && <span className="text-xs text-sky-500 bg-sky-50 rounded-full px-2 py-0.5">{result.distance}</span>}
+                        </div>
+                        <p className="font-medium text-slate-800 text-sm">{result.name}</p>
+                        {result.description && (
+                          <div>
+                            <p className="text-xs text-slate-500">
+                              {(result.description.length > 100 && !expandedIndexes.has(index)) ? result.description.slice(0, 100) + "..." : result.description}
+                            </p>
+                            {result.description.length > 100 && (
+                              <button type="button" onClick={() => toggleExpanded(index)} className="text-xs text-sky-500 hover:text-sky-700 mt-0.5">
+                                {expandedIndexes.has(index) ? "Show less" : "Show more"}
+                              </button>
+                            )}
+                          </div>
+                        )}
+                        {result.venue && <p className="text-xs text-slate-400">{result.venue}</p>}
+                      </div>
+                      <div className="flex flex-col gap-2 shrink-0">
+                        <button type="button" onClick={() => handleSave(result, index)} disabled={savedIndexes.has(index) || savingIndex === index} className={"rounded-xl px-3 py-2 text-xs font-medium transition " + (savedIndexes.has(index) ? "bg-emerald-100 text-emerald-600 border border-emerald-200" : "btn-primary")}>
+                          {savedIndexes.has(index) ? "Saved!" : savingIndex === index ? "Saving..." : "🌟 Save"}
+                        </button>
+                        <button type="button" onClick={() => handleShare(result)} className="rounded-xl px-3 py-2 text-xs font-medium border border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 transition">
+                          Share
+                        </button>
+                        {result.link && (
+                          <a href={result.link} target="_blank" rel="noopener noreferrer" className="rounded-xl px-3 py-2 text-xs font-medium text-center border border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 transition">
+                            Details
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  </div>
                 ))}
               </div>
             )}
