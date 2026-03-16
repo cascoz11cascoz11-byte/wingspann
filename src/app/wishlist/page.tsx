@@ -71,20 +71,14 @@ export default function WishlistPage() {
     setAddingToTripId(tripId);
     const trip = trips.find((t) => t.id === tripId);
     if (!trip) return;
-
-    if (item.type === "destination") {
-      // Can't add destination as activity — just close
-    } else {
-      await addActivity(tripId, {
-        title: item.name,
-        description: [item.description, item.notes].filter(Boolean).join(" — ") || undefined,
-        date: trip.startDate,
-        type: item.type === "restaurant" ? "meal" : item.type === "stay" ? "stay" : "event",
-        location: item.venue || undefined,
-        link: item.link || undefined,
-      });
-    }
-
+    await addActivity(tripId, {
+      title: item.name,
+      description: [item.description, item.notes].filter(Boolean).join(" — ") || undefined,
+      date: trip.startDate,
+      type: item.type === "restaurant" ? "meal" : item.type === "stay" ? "stay" : "event",
+      location: item.venue || undefined,
+      link: item.link || undefined,
+    });
     setAddingToTripId(null);
     setAddingTrip(null);
   }
@@ -178,7 +172,6 @@ export default function WishlistPage() {
                         </div>
                       </div>
 
-                      {/* Trip picker */}
                       {addingTrip?.itemId === item.id && (
                         <div className="rounded-xl border-2 border-sky-100 bg-sky-50 p-3 space-y-2">
                           <p className="text-xs font-medium text-sky-700">Which trip?</p>
