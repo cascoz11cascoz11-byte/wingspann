@@ -348,7 +348,9 @@ function mapActivity(data: any): Activity {
     participants: (data.activity_participants ?? []).map((p: any) => p.member_id),
     createdAt: data.created_at,
   };
-  // Boards
+}
+
+// Boards
 export interface Board {
   id: string;
   createdBy: string;
