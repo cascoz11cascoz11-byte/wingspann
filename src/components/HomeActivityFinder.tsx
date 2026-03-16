@@ -175,9 +175,9 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
           </div>
           <div className="flex flex-col gap-2 shrink-0">
             <button type="button" onClick={onSave} disabled={saved || saving} className={"rounded-xl px-3 py-2 text-xs font-medium transition " + (saved ? "bg-emerald-100 text-emerald-600 border border-emerald-200" : "btn-primary")}>
-              {saved ? "Saved!" : saving ? "Saving..." : "🌟 Save"}
+              {saved ? "Saved!" : saving ? "Saving..." : "\u2b50 Save"}
             </button>
-            <button type="tton" onClick={onShare} className="rounded-xl px-3 py-2 text-xs font-medium border border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 transition">
+            <button type="button" onClick={onShare} className="rounded-xl px-3 py-2 text-xs font-medium border border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 transition">
               Share
             </button>
             {result.link && (
@@ -199,26 +199,26 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
         </div>
       )}
       <button type="button" onClick={() => setOpen(true)} className="btn-secondary text-sm whitespace-nowrap">
-        🥱 I&apos;m Bored!
+        \u{1F971} I&apos;m Bored!
       </button>
 
       {open && (
-        <div classNa="fixed inset-0 z-50 flex items-center justify-center px-4">
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={close} />
           <div className="relative w-full max-w-lg rounded-2xl bg-white shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-display text-lg font-semibold text-sky-700">🥱 Find Activities</h3>
+                <h3 className="font-display text-lg font-semibold text-sky-700">\u{1F971} Find Activities</h3>
                 <p className="text-xs text-slate-500 mt-0.5">Finding things near you right now</p>
               </div>
-              <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
+              <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 text-xl leading-none">\u2715</button>
             </div>
 
             <div>
               <p className="text-xs font-medium text-slate-500 mb-2">Filter by category (leave blank for all)</p>
               <div className="flex flex-wrap gap-2">
                 {CATEGORIES.map((cat) => (
-                  <button key={cat.id} type="buttonClick={() => toggleCategory(cat.id)} className={"rounded-full px-3 py-1 text-xs font-medium border transition " + (selectedCategories.includes(cat.id) ? activePill : inactivePill)}>
+                  <button key={cat.id} type="button" onClick={() => toggleCategory(cat.id)} className={"rounded-full px-3 py-1 text-xs font-medium border transition " + (selectedCategories.includes(cat.id) ? activePill : inactivePill)}>
                     {cat.label}
                   </button>
                 ))}
@@ -227,11 +227,11 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
 
             <div className="flex gap-2">
               <button type="button" onClick={search} disabled={loading} className="btn-primary flex-1 py-3">
-                {loading ? "Searching..." : "🔍 Find things to do"}
+                {loading ? "Searching..." : "\u{1F50D} Find things to do"}
               </button>
               {hasSearched && results.length > 0 && (
                 <button type="button" onClick={feelingLucky} className="btn-secondary px-4 py-3 text-sm whitespace-nowrap">
-                  🎲 Feeling lucky
+                  \u{1F3B2} Feeling lucky
                 </button>
               )}
             </div>
@@ -239,8 +239,8 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
             {error && <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-600">{error}</div>}
 
             {luckyResult && (
-              <div className="roundel border-2 border-amber-300 bg-amber-50 p-4 space-y-2">
-                <p className="text-xs font-semibold text-amber-600 mb-1">🎲 Your lucky pick!</p>
+              <div className="rounded-2xl border-2 border-amber-300 bg-amber-50 p-4 space-y-2">
+                <p className="text-xs font-semibold text-amber-600 mb-1">\u{1F3B2} Your lucky pick!</p>
                 <ResultCard result={luckyResult} index={-1} saved={luckySaved} saving={savingIndex === -1} onSave={handleSaveLucky} onShare={() => handleShare(luckyResult)} />
                 <button type="button" onClick={feelingLucky} className="text-xs text-amber-500 hover:text-amber-700">Try another</button>
               </div>
@@ -256,7 +256,7 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
                     result={result}
                     index={index}
                     saved={savedIndexes.has(index)}
-                    saving={savingIndex ===ndex}
+                    saving={savingIndex === index}
                     onSave={() => handleSave(result, index)}
                     onShare={() => handleShare(result)}
                   />
