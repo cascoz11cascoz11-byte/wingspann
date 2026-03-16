@@ -527,3 +527,68 @@ function mapBoardItem(data: any, userId?: string): BoardItem {
     createdAt: data.created_at,
   };
 }
+// Expenses
+export interface Expense {
+  id: string;
+  tripId: string;
+  title: string;
+  amount: number;
+  paidBy: string;
+  paidByName: string;
+  splits: { memberId: string; memberName: string; amount: number }[];
+  createdAt: string;
+}
+
+export async function getExpenses(tripId: string): Promise<Expense[]> {
+  const { data } = await db().from("expenses").select("*, expense_splits(*)").eq("trip_id", tripId).order("created_at", { ascending: false });
+  return (data ?? []).map(mapExpense);
+}
+
+export async function addExpense(tripId: string, expense: {
+  title: string;
+  amount: number;
+  paidBy: string;
+  paidByName: string;
+  splits: { memberId: string; memberName: string; amount: number }[];
+}): Promise<Expense | undefined> {
+  const { data, error } = await db().from("expenses").insert({
+    trip_id: tripId,
+    title: expense.title,
+    amount: expense.amount,
+    paid_by: expense.paidBy,
+    paid_by_name: expense.paidByName,
+  }).select().single();
+  if (error || !data) return undefined;
+  await db().from("expense_splits").insert(
+    expense.splits.map((s) => ({
+      expense_id: data.id,
+      member_id: s.memberId,
+      member_name: s.memberName,
+      amount: s.amount,
+    }))
+  );
+  const { data: full } = await db().from("expenses").select("*, expense_splits(*)").eq("id", data.id).single();
+  return full ? mapExpense(full) : undefined;
+}
+
+export async function removeExpense(id: string): Promise<boolean> {
+  const { error } = await db().from("expenses").delete().eq("id", id);
+  return !error;
+}
+
+function mapExpense(data: any): Expense {
+  return {
+    id: data.id,
+    tripId: data.trip_id,
+    title: data.title,
+    amount: data.amount,
+    paidBy: data.paid_by,
+    paidByName: data.paid_by_name,
+    splits: (data.expense_splits ?? []).map((s: any) => ({
+      memberId: s.member_id,
+      memberName: s.member_name,
+      amount: s.amount,
+    })),
+    createdAt: data.created_at,
+  };
+}s
