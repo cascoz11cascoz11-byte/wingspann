@@ -20,6 +20,16 @@ const playfair = Playfair_Display({
 export const metadata: Metadata = {
   title: "Wingspann",
   description: "Family adventures, perfectly planned. Plan trips, invite family, and build your itinerary together.",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Wingspann",
+  },
+  icons: {
+    icon: "/icon-192.png",
+    apple: "/apple-touch-icon.png",
+  },
 };
 
 export default function RootLayout({
@@ -29,6 +39,14 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${outfit.variable} ${playfair.variable}`}>
+      <head>
+        <meta name="theme-color" content="#0ea5e9" />
+        <meta name="mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-capable" content="yes" />
+        <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+        <meta name="apple-mobile-web-app-title" content="Wingspann" />
+        <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+      </head>
       <body className="min-h-screen font-sans">
         <Header />
         <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
