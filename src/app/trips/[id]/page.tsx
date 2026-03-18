@@ -12,11 +12,12 @@ import { AddActivity } from "@/components/AddActivity";
 import { RoomPicker } from "@/components/RoomPicker";
 import { CarOrganizer } from "@/components/CarOrganizer";
 import { ActivityFinder } from "@/components/ActivityFinder";
+import { ExpenseTracker } from "@/components/ExpenseTracker";
 
 function formatDateRange(start: string, end: string) {
   const s = new Date(start + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
   const e = new Date(end + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
-  return s + " – " + e;
+  return s + " - " + e;
 }
 
 function getCountdown(startDate: string, endDate: string): { label: string; color: string } {
@@ -40,6 +41,7 @@ export default function TripDetailPage() {
   const id = params.id as string;
   const [trip, setTrip] = useState<Trip | null | undefined>(undefined);
   const [copied, setCopied] = useState(false);
+  const [activeTab, setActiveTab] = useState<"itinerary" | "expenses">("itinerary");
 
   useEffect(() => {
     async function load() {
@@ -86,7 +88,7 @@ export default function TripDetailPage() {
       <Link href="/" className="mb-6 inline-block text-sm text-slate-600 hover:text-sky-600">
         Back to trips
       </Link>
-      <div className="mb-8">
+      <div className="mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
             <h1 className="font-display text-2xl font-semibold text-sky-700">{trip.name}</h1>
@@ -103,43 +105,58 @@ export default function TripDetailPage() {
         </div>
       </div>
 
-      <div className="space-y-10">
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold text-sky-700">Family members</h2>
-            <div className="flex gap-2">
-              <CarOrganizer tripId={trip.id} members={trip.members} />
-              <RoomPicker members={trip.members} />
-              <InviteMember tripId={trip.id} onInvited={refreshTrip} />
-            </div>
-          </div>
-          <MemberList tripId={trip.id} members={trip.members} onUpdate={refreshTrip} />
-        </section>
-
-        <section>
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display text-lg font-semibold text-sky-700">Itinerary</h2>
-            <div className="flex gap-2">
-              <ActivityFinder
-                tripId={trip.id}
-                tripDestination={trip.destination}
-                tripStartDate={trip.startDate}
-                tripEndDate={trip.endDate}
-                stays={trip.activities.filter((a) => a.type === "stay")}
-                onAdded={refreshTrip}
-              />
-              <AddActivity
-                tripId={trip.id}
-                tripStartDate={trip.startDate}
-                tripEndDate={trip.endDate}
-                sourceBoardId={trip.sourceBoardId}
-                onAdded={refreshTrip}
-              />
-            </div>
-          </div>
-          <ActivityList tripId={trip.id} activities={trip.activities} members={trip.members} onUpdate={refreshTrip} />
-        </section>
+      <div className="flex gap-6 border-b border-slate-200 mb-6">
+        <button type="button" onClick={() => setActiveTab("itinerary")} className={"pb-2 text-sm font-medium transition border-b-2 " + (activeTab === "itinerary" ? "border-sky-500 text-sky-600" : "border-transparent text-slate-500 hover:text-sky-500")}>
+          Itinerary
+        </button>
+        <button type="button" onClick={() => setActiveTab("expenses")} className={"pb-2 text-sm font-medium transition border-b-2 " + (activeTab === "expenses" ? "border-sky-500 text-sky-600" : "border-transparent text-slate-500 hover:text-sky-500")}>
+          Expenses
+        </button>
       </div>
+
+      {activeTab === "itinerary" && (
+        <div className="space-y-10">
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold text-sky-700">Family members</h2>
+              <div className="flex gap-2">
+                <CarOrganizer tripId={trip.id} members={trip.members} />
+                <RoomPicker members={trip.members} />
+                <InviteMember tripId={trip.id} onInvited={refreshTrip} />
+              </div>
+            </div>
+            <MemberList tripId={trip.id} members={trip.members} onUpdate={refreshTrip} />
+          </section>
+
+          <section>
+            <div className="mb-4 flex items-center justify-between">
+              <h2 className="font-display text-lg font-semibold text-sky-700">Itinerary</h2>
+              <div className="flex gap-2">
+                <ActivityFinder
+                  tripId={trip.id}
+                  tripDestination={trip.destination}
+                  tripStartDate={trip.startDate}
+                  tripEndDate={trip.endDate}
+                  stays={trip.activities.filter((a) => a.type === "stay")}
+                  onAdded={refreshTrip}
+                />
+                <AddActivity
+                  tripId={trip.id}
+                  tripStartDate={trip.startDate}
+                  tripEndDate={trip.endDate}
+                  sourceBoardId={trip.sourceBoardId}
+                  onAdded={refreshTrip}
+                />
+              </div>
+            </div>
+            <ActivityList tripId={trip.id} activities={trip.activities} members={trip.members} onUpdate={refreshTrip} />
+          </section>
+        </div>
+      )}
+
+      {activeTab === "expenses" && (
+        <ExpenseTracker tripId={trip.id} members={trip.members} />
+      )}
     </div>
   );
 }
