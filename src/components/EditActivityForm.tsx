@@ -8,7 +8,7 @@ const ACTIVITY_TYPES: { value: Activity["type"]; label: string }[] = [
   { value: "event", label: "Event" },
   { value: "meal", label: "Meal" },
   { value: "travel", label: "Travel" },
-  { value: "accommodation", label: "Accommodations" },
+  
   { value: "stay", label: "Stay" },
   { value: "other", label: "Other" },
 ];
