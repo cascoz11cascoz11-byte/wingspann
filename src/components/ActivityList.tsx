@@ -6,8 +6,8 @@ import { EditActivityForm } from "./EditActivityForm";
 
 interface ActivityListProps { tripId: string; activities: Activity[]; members: FamilyMember[]; onUpdate: () => void; }
 
-const TYPE_LABELS: Record<Activity["type"], string> = { event: "Event", meal: "Meal", travel: "Travel", accommodation: "Accommodations", stay: "Stay", other: "Other" };
-const TYPE_COLORS: Record<Activity["type"], string> = { event: "bg-sky-100 text-sky-700", meal: "bg-amber-100 text-amber-700", travel: "bg-slate-200 text-slate-700", accommodation: "bg-green-100 text-green-700", stay: "bg-purple-100 text-purple-700", other: "bg-slate-100 text-slate-600" };
+const TYPE_LABELS: Record<Activity["type"], string> = { event: "Event", meal: "Meal", travel: "Travel", stay: "Stay", other: "Other" };
+const TYPE_COLORS: Record<Activity["type"], string> = { event: "bg-sky-100 text-sky-700", meal: "bg-amber-100 text-amber-700", travel: "bg-slate-200 text-slate-700", stay: "bg-purple-100 text-purple-700", other: "bg-slate-100 text-slate-600" };
 
 const STATUS_COLORS: Record<string, string> = {
   Active: "bg-green-100 text-green-700",
@@ -24,38 +24,30 @@ interface FlightStatus {
   arrival: { airport: string | null; scheduled: string | null; actual: string | null; gate: string | null; terminal: string | null; };
 }
 
-interface HourlyWeather {
-  time: string;
-  temp: number;
-  description: string;
-  emoji: string;
-}
+interface HourlyWeather { time: string; temp: number; description: string; emoji: string; }
 
 interface WeatherData {
-  temp?: number;
-  max?: number;
-  min?: number;
-  description: string;
-  emoji: string;
-  isHourly: boolean;
+  temp?: number; max?: number; min?: number;
+  description: string; emoji: string; isHourly: boolean;
   hourlyForecast: HourlyWeather[] | null;
 }
 
-function formatDate(dateStr: string) { const [y, m, d] = dateStr.split("-").map(Number); return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" }); }
+function formatDate(dateStr: string) {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "long", month: "short", day: "numeric" });
+}
 
 function formatTime(time: string) {
   const [h, m] = time.split(":").map(Number);
   const ampm = h >= 12 ? "PM" : "AM";
   const hour = h % 12 || 12;
-  return `${hour}:${m.toString().padStart(2, "0")} ${ampm}`;
+  return hour + ":" + m.toString().padStart(2, "0") + " " + ampm;
 }
 
 function formatFlightTime(isoOrTime: string) {
   try {
     const date = new Date(isoOrTime);
-    if (!isNaN(date.getTime())) {
-      return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
-    }
+    if (!isNaN(date.getTime())) return date.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", hour12: true });
     return formatTime(isoOrTime);
   } catch { return isoOrTime; }
 }
@@ -74,7 +66,7 @@ function calculateETA(departureTime: string, driveTime: string): string {
     const etaM = totalMinutes % 60;
     const ampm = etaH >= 12 ? "PM" : "AM";
     const hour = etaH % 12 || 12;
-    return `${hour}:${etaM.toString().padStart(2, "0")} ${ampm}`;
+    return hour + ":" + etaM.toString().padStart(2, "0") + " " + ampm;
   } catch { return ""; }
 }
 
@@ -104,7 +96,7 @@ function WeatherPill({ location, date, time, endTime }: { location: string; date
       const params = new URLSearchParams({ location, date });
       if (time) params.set("time", time);
       if (endTime) params.set("endTime", endTime);
-      const res = await fetch(`/api/weather?${params.toString()}`);
+      const res = await fetch("/api/weather?" + params.toString());
       if (!res.ok) { setLoading(false); return; }
       const data = await res.json();
       setWeather(data);
@@ -122,13 +114,11 @@ function WeatherPill({ location, date, time, endTime }: { location: string; date
   const pill = (
     <span
       onClick={() => hasHourly && setExpanded(!expanded)}
-      className={`rounded-full bg-sky-50 border border-sky-100 px-2 py-0.5 text-xs text-sky-700 transition ${hasHourly ? "cursor-pointer hover:bg-sky-100" : ""}`}
+      className={"rounded-full bg-sky-50 border border-sky-100 px-2 py-0.5 text-xs text-sky-700 transition " + (hasHourly ? "cursor-pointer hover:bg-sky-100" : "")}
     >
       {weather.emoji}{" "}
-      {weather.isHourly && weather.temp !== undefined
-        ? `${weather.temp}°F`
-        : `${weather.max}°F / ${weather.min}°F`}{" "}
-      · {weather.description}
+      {weather.isHourly && weather.temp !== undefined ? weather.temp + "°F" : weather.max + "°F / " + weather.min + "°F"}
+      {" · "}{weather.description}
       {hasHourly && <span className="ml-1 opacity-60">{expanded ? "▲" : "▼"}</span>}
     </span>
   );
@@ -164,7 +154,7 @@ function FlightStatusCard({ flightNumber, date }: { flightNumber: string; date: 
     setLoading(true);
     setError(false);
     try {
-      const res = await fetch(`/api/flight-status?flight=${encodeURIComponent(flightNumber)}&date=${date}`);
+      const res = await fetch("/api/flight-status?flight=" + encodeURIComponent(flightNumber) + "&date=" + date);
       if (!res.ok) { setError(true); setLoading(false); return; }
       const data = await res.json();
       setStatus(data);
@@ -178,15 +168,10 @@ function FlightStatusCard({ flightNumber, date }: { flightNumber: string; date: 
 
   return (
     <div className="mt-2 rounded-xl border border-blue-100 bg-blue-50 overflow-hidden">
-      <button
-        type="button"
-        onClick={() => setExpanded(!expanded)}
-        className="w-full flex items-center justify-between px-3 py-2 text-sm text-blue-700 font-medium hover:bg-blue-100 transition"
-      >
+      <button type="button" onClick={() => setExpanded(!expanded)} className="w-full flex items-center justify-between px-3 py-2 text-sm text-blue-700 font-medium hover:bg-blue-100 transition">
         <span>✈️ Live flight status</span>
         <span>{expanded ? "▲" : "▼"}</span>
       </button>
-
       {expanded && (
         <div className="px-3 pb-3 space-y-2">
           {loading && <p className="text-sm text-blue-500">Fetching flight info...</p>}
@@ -242,9 +227,7 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
   }
 
   function toggleParticipant(activityId: string, memberId: string, current: string[]) {
-    const updated = current.includes(memberId)
-      ? current.filter((id) => id !== memberId)
-      : [...current, memberId];
+    const updated = current.includes(memberId) ? current.filter((id) => id !== memberId) : [...current, memberId];
     setLocalParticipants((prev) => ({ ...prev, [activityId]: updated }));
   }
 
@@ -254,8 +237,7 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
 
   async function saveParticipants(activityId: string) {
     setSavingParticipants(true);
-    const participants = localParticipants[activityId] ?? [];
-    await updateActivityParticipants(activityId, participants);
+    await updateActivityParticipants(activityId, localParticipants[activityId] ?? []);
     setSavingParticipants(false);
     setAssigningId(null);
     onUpdate();
@@ -279,10 +261,11 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
               <li key={activity.id}><EditActivityForm tripId={tripId} activity={activity} onSaved={() => { setEditingId(null); onUpdate(); }} onCancel={() => setEditingId(null)} /></li>
             ) : (
               <li key={activity.id} className="card overflow-hidden">
-                <div className="flex items-start justify-between gap-4 p-4">
-                  <div className="min-w-0 flex-1">
-                    <div className="flex flex-wrap items-center gap-2">
-                      <h4 className="font-medium text-slate-800">{activity.title}</h4>
+                <div className="p-4 space-y-3">
+                  {/* Top row: title + action buttons */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
+                      <h4 className="font-medium text-slate-800 break-words">{activity.title}</h4>
                       <span className={"rounded-full px-2 py-0.5 text-xs font-medium " + TYPE_COLORS[activity.type]}>{TYPE_LABELS[activity.type]}</span>
                       {activity.travelSubtype === "flight" && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">✈️ Flight</span>}
                       {activity.travelSubtype === "drive" && <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">🚗 Drive</span>}
@@ -290,115 +273,93 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
                         <WeatherPill location={activity.location} date={activity.date} time={activity.time} endTime={activity.endTime} />
                       )}
                     </div>
+                    {/* Action buttons - always visible, won't overflow */}
+                    <div className="flex items-center gap-3 shrink-0 ml-2">
+                      <button type="button" onClick={() => setEditingId(activity.id)} className="text-xs text-sky-600 hover:underline">Edit</button>
+                      <button type="button" onClick={() => handleRemove(activity.id)} className="text-xs text-orange-600 hover:text-orange-700">Remove</button>
+                    </div>
+                  </div>
 
-                    {activity.description && <p className="mt-1 text-sm text-slate-600">{activity.description}</p>}
+                  {/* Body */}
+                  <div className="space-y-2">
+                    {activity.description && <p className="text-sm text-slate-600">{activity.description}</p>}
 
                     {activity.travelSubtype === "drive" && activity.driveTime && activity.time && (
-                      <div className="mt-2 rounded-xl bg-orange-50 px-3 py-2 text-sm text-orange-800">
-                        🚗 Departing at {formatTime(activity.time)} · drive time of {activity.driveTime}
-                        {calculateETA(activity.time, activity.driveTime) && ` · ETA: ${calculateETA(activity.time, activity.driveTime)}`}
+                      <div className="rounded-xl bg-orange-50 px-3 py-2 text-sm text-orange-800">
+                        🚗 Departing at {formatTime(activity.time)} · {activity.driveTime}
+                        {calculateETA(activity.time, activity.driveTime) && " · ETA: " + calculateETA(activity.time, activity.driveTime)}
                       </div>
                     )}
-
                     {activity.travelSubtype === "drive" && activity.driveTime && !activity.time && (
-                      <div className="mt-2 rounded-xl bg-orange-50 px-3 py-2 text-sm text-orange-800">
+                      <div className="rounded-xl bg-orange-50 px-3 py-2 text-sm text-orange-800">
                         🚗 Est. drive time: {activity.driveTime}
                       </div>
                     )}
-
                     {activity.travelSubtype === "flight" && (activity.departureLocation || activity.arrivalLocation) && (
-                      <div className="mt-2 rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-800">
+                      <div className="rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-800">
                         ✈️ {activity.departureLocation} to {activity.arrivalLocation}
-                        {activity.time && ` · Departs ${formatTime(activity.time)}`}
-                        {activity.arrivalTime && ` · Arrives ${formatTime(activity.arrivalTime)}`}
+                        {activity.time && " · Departs " + formatTime(activity.time)}
+                        {activity.arrivalTime && " · Arrives " + formatTime(activity.arrivalTime)}
                       </div>
                     )}
-
                     {activity.travelSubtype === "flight" && activity.flightNumber && (
                       <FlightStatusCard flightNumber={activity.flightNumber} date={activity.date} />
                     )}
 
-                    <div className="mt-2 flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
+                    <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm text-slate-500">
                       {activity.time && activity.travelSubtype !== "drive" && activity.travelSubtype !== "flight" && (
-                        <span>{formatTime(activity.time)}{activity.endTime && ` – ${formatTime(activity.endTime)}`}</span>
+                        <span>{formatTime(activity.time)}{activity.endTime && " – " + formatTime(activity.endTime)}</span>
                       )}
                       {activity.location && <span className="truncate">📍 {activity.location}</span>}
                     </div>
 
-                    {activity.link && <a href={activity.link} target="_blank" rel="noopener noreferrer" className="mt-2 inline-flex items-center gap-1.5 text-sm text-sky-600 hover:underline">🔗 View link</a>}
+                    {activity.link && (
+                      <a href={activity.link} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 text-sm text-sky-600 hover:underline">
+                        🔗 View link
+                      </a>
+                    )}
 
                     {getParticipants(activity).length > 0 && assigningId !== activity.id && (
-                      <div className="mt-2 flex flex-wrap gap-1">
+                      <div className="flex flex-wrap gap-1">
                         {getParticipants(activity).map((memberId) => {
                           const member = members.find((m) => m.id === memberId);
                           return member ? (
-                            <span key={memberId} className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">
-                              {member.name}
-                            </span>
+                            <span key={memberId} className="rounded-full bg-sky-100 px-2 py-0.5 text-xs font-medium text-sky-700">{member.name}</span>
                           ) : null;
                         })}
                       </div>
                     )}
 
                     {assigningId === activity.id && (
-                      <div className="mt-3 rounded-xl border-2 border-sky-100 bg-sky-50 p-3 space-y-2">
+                      <div className="rounded-xl border-2 border-sky-100 bg-sky-50 p-3 space-y-2">
                         <p className="text-xs font-medium text-sky-700">Who is doing this?</p>
                         <div className="flex flex-wrap gap-2">
-                          <button
-                            type="button"
-                            onClick={() => selectAll(activity.id)}
-                            className="rounded-full border-2 border-sky-300 bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700 hover:bg-sky-200"
-                          >
+                          <button type="button" onClick={() => selectAll(activity.id)} className="rounded-full border-2 border-sky-300 bg-sky-100 px-3 py-1 text-xs font-medium text-sky-700 hover:bg-sky-200">
                             All
                           </button>
                           {members.map((member) => {
                             const selected = getParticipants(activity).includes(member.id);
                             return (
-                              <button
-                                key={member.id}
-                                type="button"
-                                onClick={() => toggleParticipant(activity.id, member.id, getParticipants(activity))}
-                                className={`rounded-full border-2 px-3 py-1 text-xs font-medium transition ${selected ? "border-sky-400 bg-sky-200 text-sky-800" : "border-slate-200 bg-white text-slate-600 hover:border-sky-200"}`}
-                              >
+                              <button key={member.id} type="button" onClick={() => toggleParticipant(activity.id, member.id, getParticipants(activity))} className={"rounded-full border-2 px-3 py-1 text-xs font-medium transition " + (selected ? "border-sky-400 bg-sky-200 text-sky-800" : "border-slate-200 bg-white text-slate-600 hover:border-sky-200")}>
                                 {selected ? "✓ " : ""}{member.name}
                               </button>
                             );
                           })}
                         </div>
                         <div className="flex gap-2 pt-1">
-                          <button
-                            type="button"
-                            onClick={() => saveParticipants(activity.id)}
-                            disabled={savingParticipants}
-                            className="btn-primary text-xs py-1.5"
-                          >
+                          <button type="button" onClick={() => saveParticipants(activity.id)} disabled={savingParticipants} className="btn-primary text-xs py-1.5">
                             {savingParticipants ? "Saving..." : "Save"}
                           </button>
-                          <button
-                            type="button"
-                            onClick={() => setAssigningId(null)}
-                            className="btn-secondary text-xs py-1.5"
-                          >
-                            Cancel
-                          </button>
+                          <button type="button" onClick={() => setAssigningId(null)} className="btn-secondary text-xs py-1.5">Cancel</button>
                         </div>
                       </div>
                     )}
                   </div>
 
-                  <div className="flex shrink-0 flex-col gap-2 items-end">
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => setEditingId(activity.id)} className="text-sm text-sky-600 hover:underline">Edit</button>
-                      <button type="button" onClick={() => handleRemove(activity.id)} className="text-sm text-orange-600 hover:text-orange-700">Remove</button>
-                    </div>
-                    <button
-                      type="button"
-                      onClick={() => setAssigningId(assigningId === activity.id ? null : activity.id)}
-                      className="text-xs text-slate-500 hover:text-sky-600"
-                    >
-                      👥 Assign people
-                    </button>
-                  </div>
+                  {/* Assign people button */}
+                  <button type="button" onClick={() => setAssigningId(assigningId === activity.id ? null : activity.id)} className="text-xs text-slate-400 hover:text-sky-600 transition">
+                    👥 Assign people
+                  </button>
                 </div>
               </li>
             ))}
