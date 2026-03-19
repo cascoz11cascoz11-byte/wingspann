@@ -10,12 +10,7 @@ interface MemberListProps {
 }
 
 function getInitials(name: string) {
-  return name
-    .split(" ")
-    .map((n) => n[0])
-    .join("")
-    .toUpperCase()
-    .slice(0, 2);
+  return name.split(" ").map((n) => n[0]).join("").toUpperCase().slice(0, 2);
 }
 
 export function MemberList({ tripId, members = [], onUpdate }: MemberListProps) {
@@ -37,38 +32,27 @@ export function MemberList({ tripId, members = [], onUpdate }: MemberListProps) 
   return (
     <ul className="space-y-2">
       {members.map((member) => (
-        <li
-          key={member.id}
-          className="card flex items-center justify-between gap-4 p-4"
-        >
+        <li key={member.id} className="card p-4">
           <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 items-center justify-center rounded-full bg-sky-100 text-sm font-medium text-sky-700">
+            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-sky-100 text-sm font-medium text-sky-700">
               {getInitials(member.name)}
             </div>
-            <div>
-              <p className="font-medium text-slate-800">{member.name}</p>
-              <p className="text-sm text-slate-500">{member.email}</p>
+            <div className="flex-1 min-w-0">
+              <p className="font-medium text-slate-800 truncate">{member.name}</p>
+              <p className="text-sm text-slate-500 truncate">{member.email}</p>
             </div>
-          </div>
-          <div className="flex items-center gap-2">
-            <span
-              className={`rounded-full px-2.5 py-0.5 text-xs font-medium ${
-                member.status === "accepted"
-                  ? "bg-green-100 text-green-700"
-                  : "bg-amber-100 text-amber-700"
-              }`}
-            >
-              {member.status === "accepted" ? "Accepted" : "Pending"}
-            </span>
-            {member.email !== "you@example.com" && (
+            <div className="flex items-center gap-2 shrink-0">
+              <span className={"rounded-full px-2.5 py-0.5 text-xs font-medium " + (member.status === "accepted" ? "bg-green-100 text-green-700" : "bg-amber-100 text-amber-700")}>
+                {member.status === "accepted" ? "Accepted" : "Pending"}
+              </span>
               <button
                 type="button"
                 onClick={() => handleRemove(member.id)}
-                className="text-sm text-orange-500 hover:text-orange-600"
+                className="text-xs text-orange-500 hover:text-orange-600 whitespace-nowrap"
               >
                 Remove
               </button>
-            )}
+            </div>
           </div>
         </li>
       ))}
