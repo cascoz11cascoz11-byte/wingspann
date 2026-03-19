@@ -3,6 +3,7 @@ import { useState } from "react";
 import { createClient } from "@/lib/supabase";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import Image from "next/image";
 
 export default function LoginPage() {
   const router = useRouter();
@@ -21,20 +22,21 @@ export default function LoginPage() {
       setError(error.message);
       setLoading(false);
     } else {
-      router.push("/");
-      router.refresh();
+      router.replace("/");
     }
   }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-sky-50 px-4">
       <div className="card w-full max-w-md p-8">
-        <h1 className="font-display text-3xl font-bold text-sky-600">Wingspann ✈️</h1>
-        <p className="mt-1 text-slate-500">Sign in to your account</p>
-        <form onSubmit={handleSubmit} className="mt-6 space-y-4">
+        <div className="flex justify-center mb-4">
+          <Image src="/logo.png" alt="Wingspann" width={180} height={60} className="h-12 w-auto" priority />
+        </div>
+        <p className="text-center text-slate-500 mb-6">Sign in to your account</p>
+        <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-slate-700">Email</label>
-            <input type="email" className="input mt-1" value={email} onChange={(e) => setEmail(e.target.value)} required />
+            <input type="email" className="input mt-1" value={email} onChange={(e) => setEmail(e.target.value)} required autoFocus />
           </div>
           <div>
             <label className="block text-sm font-medium text-slate-700">Password</label>
@@ -52,4 +54,4 @@ export default function LoginPage() {
       </div>
     </div>
   );
-} 
+}
