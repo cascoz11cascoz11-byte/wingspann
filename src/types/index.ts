@@ -16,7 +16,7 @@ export interface Activity {
   checkOutDate?: string;
   location?: string;
   link?: string;
-  type: "event" | "meal" | "travel" | "accommodation" | "stay" | "other";
+  type: "event" | "meal" | "travel"  | "stay" | "other";
   travelSubtype?: "drive" | "flight" | "other";
   departureLocation?: string;
   arrivalLocation?: string;
