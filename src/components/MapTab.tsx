@@ -150,7 +150,7 @@ export function MapTab({ activities, destination }: { activities: Activity[]; de
       <div className="flex gap-2 flex-wrap">
         <button
           type="button"
-          onClick==> setSelectedDate("all")}
+          onClick={() => setSelectedDate("all")}
           className={"rounded-full px-3 py-1 text-xs font-medium border-2 transition " + (selectedDate === "all" ? "border-sky-400 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-500 hover:border-sky-200")}
         >
           All days
