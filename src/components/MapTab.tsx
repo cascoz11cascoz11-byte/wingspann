@@ -37,7 +37,7 @@ export function MapTab({ activities, destination }: { activities: Activity[]; de
   const [loaded, setLoaded] = useState(false);
 
   const withLocation = activities.filter((a) => a.location);
-  const dates = [...new Set(withLocation.map((a) => a.date))].sort();
+  const dates = withLocation.map((a) => a.date).filter((d, i, arr) => arr.indexOf(d) === i).sort();
   const filtered = selectedDate === "all" ? withLocation : withLocation.filter((a) => a.date === selectedDate);
 
   useEffect(() => {
