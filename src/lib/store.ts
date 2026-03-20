@@ -67,6 +67,28 @@ export interface BoardItem {
   createdAt: string;
 }
 
+export interface Expense {
+  id: string;
+  tripId: string;
+  title: string;
+  amount: number;
+  paidBy: string;
+  paidByName: string;
+  splits: { memberId: string; memberName: string; amount: number }[];
+  createdAt: string;
+}
+
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  link?: string;
+  read: boolean;
+  createdAt: string;
+}
+
 function db() {
   return createClient();
 }
@@ -81,14 +103,12 @@ export async function getTrips(): Promise<Trip[]> {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  // Get trips you created
   const { data: ownedTrips } = await supabase
     .from("trips")
     .select("*, members(*), activities(*, activity_participants(*))")
     .eq("user_id", user.id)
     .order("created_at", { ascending: false });
 
-  // Get trips you were invited to via email
   const { data: memberRows } = await supabase
     .from("members")
     .select("trip_id")
@@ -121,8 +141,9 @@ export async function getTripByInviteCode(code: string): Promise<Trip | undefine
 }
 
 export async function createTrip(data: Omit<Trip, "id" | "createdAt" | "activities" | "members"> & { sourceBoardId?: string }): Promise<Trip> {
-  const userId = await getUserId();
-  const { data: trip, error } = await db().from("trips").insert({
+  const supabase = db();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: trip, error } = await supabase.from("trips").insert({
     name: data.name,
     destination: data.destination,
     start_date: data.startDate,
@@ -130,10 +151,27 @@ export async function createTrip(data: Omit<Trip, "id" | "createdAt" | "activiti
     description: data.description,
     cover_image: data.coverImage,
     created_by: data.createdBy,
-    user_id: userId,
+    user_id: user?.id,
     source_board_id: data.sourceBoardId ?? null,
   }).select("*, members(*), activities(*, activity_participants(*))").single();
   if (error) throw new Error(error.message);
+
+  // Auto-add creator as accepted member
+  if (user) {
+    await supabase.from("members").insert({
+      trip_id: trip.id,
+      name: user.user_metadata?.display_name ?? user.email?.split("@")[0] ?? "Me",
+      email: user.email,
+      status: "accepted",
+    });
+    const { data: full } = await supabase
+      .from("trips")
+      .select("*, members(*), activities(*, activity_participants(*))")
+      .eq("id", trip.id)
+      .single();
+    if (full) return mapTrip(full);
+  }
+
   return mapTrip(trip);
 }
 
@@ -141,7 +179,6 @@ export async function deleteTrip(id: string): Promise<boolean> {
   const { error } = await db().from("trips").delete().eq("id", id);
   return !error;
 }
-
 
 export async function addMember(tripId: string, member: Omit<FamilyMember, "id">): Promise<FamilyMember | undefined> {
   const { data } = await db().from("members").insert({
@@ -155,6 +192,11 @@ export async function addMember(tripId: string, member: Omit<FamilyMember, "id">
 
 export async function removeMember(tripId: string, memberId: string): Promise<boolean> {
   const { error } = await db().from("members").delete().eq("id", memberId).eq("trip_id", tripId);
+  return !error;
+}
+
+export async function updateMemberStatus(memberId: string, status: "accepted" | "pending" | "declined"): Promise<boolean> {
+  const { error } = await db().from("members").update({ status }).eq("id", memberId);
   return !error;
 }
 
@@ -180,15 +222,10 @@ export async function addActivity(tripId: string, activity: Omit<Activity, "id" 
   }).select().single();
 
   if (data) {
-    // Fire and forget notification
     fetch("/api/notify-activity", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        tripId,
-        activityTitle: activity.title,
-        addedByUserId: userId,
-      }),
+      body: JSON.stringify({ tripId, activityTitle: activity.title, addedByUserId: userId }),
     }).catch(() => {});
   }
 
@@ -415,6 +452,65 @@ export async function toggleBoardItemHeart(itemId: string): Promise<boolean> {
   return true;
 }
 
+// Expenses
+export async function getExpenses(tripId: string): Promise<Expense[]> {
+  const { data } = await db().from("expenses").select("*, expense_splits(*)").eq("trip_id", tripId).order("created_at", { ascending: false });
+  return (data ?? []).map(mapExpense);
+}
+
+export async function addExpense(tripId: string, expense: {
+  title: string;
+  amount: number;
+  paidBy: string;
+  paidByName: string;
+  splits: { memberId: string; memberName: string; amount: number }[];
+}): Promise<Expense | undefined> {
+  const { data, error } = await db().from("expenses").insert({
+    trip_id: tripId,
+    title: expense.title,
+    amount: expense.amount,
+    paid_by: expense.paidBy,
+    paid_by_name: expense.paidByName,
+  }).select().single();
+  if (error || !data) return undefined;
+  await db().from("expense_splits").insert(
+    expense.splits.map((s) => ({
+      expense_id: data.id,
+      member_id: s.memberId,
+      member_name: s.memberName,
+      amount: s.amount,
+    }))
+  );
+  const { data: full } = await db().from("expenses").select("*, expense_splits(*)").eq("id", data.id).single();
+  return full ? mapExpense(full) : undefined;
+}
+
+export async function removeExpense(id: string): Promise<boolean> {
+  const { error } = await db().from("expenses").delete().eq("id", id);
+  return !error;
+}
+
+// Notifications
+export async function getNotifications(): Promise<AppNotification[]> {
+  const userId = await getUserId();
+  if (!userId) return [];
+  const { data } = await db().from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(50);
+  return (data ?? []).map(mapNotification);
+}
+
+export async function markNotificationsRead(): Promise<void> {
+  const userId = await getUserId();
+  if (!userId) return;
+  await db().from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
+}
+
+export async function getUnreadCount(): Promise<number> {
+  const userId = await getUserId();
+  if (!userId) return 0;
+  const { count } = await db().from("notifications").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("read", false);
+  return count ?? 0;
+}
+
 // Mappers
 function mapCar(data: any): Car {
   return {
@@ -548,54 +644,6 @@ function mapBoardItem(data: any, userId?: string): BoardItem {
     createdAt: data.created_at,
   };
 }
-// Expenses
-export interface Expense {
-  id: string;
-  tripId: string;
-  title: string;
-  amount: number;
-  paidBy: string;
-  paidByName: string;
-  splits: { memberId: string; memberName: string; amount: number }[];
-  createdAt: string;
-}
-
-export async function getExpenses(tripId: string): Promise<Expense[]> {
-  const { data } = await db().from("expenses").select("*, expense_splits(*)").eq("trip_id", tripId).order("created_at", { ascending: false });
-  return (data ?? []).map(mapExpense);
-}
-
-export async function addExpense(tripId: string, expense: {
-  title: string;
-  amount: number;
-  paidBy: string;
-  paidByName: string;
-  splits: { memberId: string; memberName: string; amount: number }[];
-}): Promise<Expense | undefined> {
-  const { data, error } = await db().from("expenses").insert({
-    trip_id: tripId,
-    title: expense.title,
-    amount: expense.amount,
-    paid_by: expense.paidBy,
-    paid_by_name: expense.paidByName,
-  }).select().single();
-  if (error || !data) return undefined;
-  await db().from("expense_splits").insert(
-    expense.splits.map((s) => ({
-      expense_id: data.id,
-      member_id: s.memberId,
-      member_name: s.memberName,
-      amount: s.amount,
-    }))
-  );
-  const { data: full } = await db().from("expenses").select("*, expense_splits(*)").eq("id", data.id).single();
-  return full ? mapExpense(full) : undefined;
-}
-
-export async function removeExpense(id: string): Promise<boolean> {
-  const { error } = await db().from("expenses").delete().eq("id", id);
-  return !error;
-}
 
 function mapExpense(data: any): Expense {
   return {
@@ -612,37 +660,6 @@ function mapExpense(data: any): Expense {
     })),
     createdAt: data.created_at,
   };
-}
-// Notifications
-export interface AppNotification {
-  id: string;
-  userId: string;
-  type: string;
-  title: string;
-  body: string;
-  link?: string;
-  read: boolean;
-  createdAt: string;
-}
-
-export async function getNotifications(): Promise<AppNotification[]> {
-  const userId = await getUserId();
-  if (!userId) return [];
-  const { data } = await db().from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(50);
-  return (data ?? []).map(mapNotification);
-}
-
-export async function markNotificationsRead(): Promise<void> {
-  const userId = await getUserId();
-  if (!userId) return;
-  await db().from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
-}
-
-export async function getUnreadCount(): Promise<number> {
-  const userId = await getUserId();
-  if (!userId) return 0;
-  const { count } = await db().from("notifications").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("read", false);
-  return count ?? 0;
 }
 
 function mapNotification(data: any): AppNotification {
