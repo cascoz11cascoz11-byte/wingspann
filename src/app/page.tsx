@@ -36,17 +36,14 @@ function NotificationsTab() {
   const [notifications, setNotifications] = useState<AppNotification[]>([]);
   const [loading, setLoading] = useState(true);
   const [showOld, setShowOld] = useState(false);
-  // Track which were unread when we first loaded
-  const [initialUnreadIds, setInitialUnreadIds] = useState<Set<string>>(new Set());
+  const [initialUnreadIds, setInitialUnreadIds] = useState<string[]>([]);
 
   useEffect(() => {
     async function load() {
       const data = await getNotifications();
       setNotifications(data);
-      const unreadIds = new Set(data.filter((n) => !n.read).map((n) => n.id));
-      setInitialUnreadIds(unreadIds);
+      setInitialUnreadIds(data.filter((n) => !n.read).map((n) => n.id));
       setLoading(false);
-      // Mark as read after a short delay so user sees them as "new" first
       setTimeout(() => markNotificationsRead(), 2000);
     }
     load();
@@ -54,12 +51,12 @@ function NotificationsTab() {
 
   if (loading) return <p className="text-slate-500 text-center py-12">Loading...</p>;
 
-  const newNotifications = notifications.filter((n) => initialUnreadIds.has(n.id));
-  const oldNotifications = notifications.filter((n) => !initialUnreadIds.has(n.id));
+  const newNotifications = notifications.filter((n) => initialUnreadIds.includes(n.id));
+  const oldNotifications = notifications.filter((n) => !initialUnreadIds.includes(n.id));
 
   function NotifCard({ n }: { n: AppNotification }) {
     const config = TYPE_CONFIG[n.type] ?? { emoji: "🔔", color: "bg-slate-100 text-slate-600" };
-    const isNew = initialUnreadIds.has(n.id);
+    const isNew = initialUnreadIds.includes(n.id);
     const card = (
       <div className={"card p-4 flex items-start gap-3 " + (isNew ? "border-sky-200 bg-sky-50/30" : "opacity-60")}>
         <div className={"rounded-full w-9 h-9 flex items-center justify-center shrink-0 text-base " + config.color}>
@@ -121,12 +118,11 @@ export default function HomePage() {
     getTrips().then(setTrips);
   }, []);
 
-  const activeTab = "border-b-2 border-sky-500 text-sky-600 font-semibold pb-2";
-  const inactiveTab = "text-slate-500 hover:text-sky-500 pb-2 transition";
+  const activeTab = "border-b-2 border-sky-500 text-sky-600 font-semibold pb-2 whitespace-nowrap";
+  const inactiveTab = "text-slate-500 hover:text-sky-500 pb-2 transition whitespace-nowrap";
 
   return (
     <div>
-      {/* Hero */}
       <div className="mb-6">
         <p className="font-display text-xl font-semibold text-amber-600">
           Group adventures, perfectly planned ✈️
@@ -137,18 +133,17 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-6 border-b border-slate-200 mb-6 overflow-x-auto">
-        <button type="button" onClick={() => setTab("notifications")} className={"whitespace-nowrap " + (tab === "notifications" ? activeTab : inactiveTab)}>
+        <button type="button" onClick={() => setTab("notifications")} className={tab === "notifications" ? activeTab : inactiveTab}>
           🔔 Notifications
         </button>
-        <button type="button" onClick={() => setTab("trips")} className={"whitespace-nowrap " + (tab === "trips" ? activeTab : inactiveTab)}>
+        <button type="button" onClick={() => setTab("trips")} className={tab === "trips" ? activeTab : inactiveTab}>
           ✈️ Trips
         </button>
-        <button type="button" onClick={() => setTab("calendar")} className={"whitespace-nowrap " + (tab === "calendar" ? activeTab : inactiveTab)}>
+        <button type="button" onClick={() => setTab("calendar")} className={tab === "calendar" ? activeTab : inactiveTab}>
           📅 Calendar
         </button>
-        <Link href="/wishlist" className="whitespace-nowrap text-slate-500 hover:text-sky-500 pb-2 transition">
+        <Link href="/wishlist" className={inactiveTab}>
           🌟 Wishlist
         </Link>
       </div>
