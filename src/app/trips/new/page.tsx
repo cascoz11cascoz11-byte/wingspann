@@ -40,7 +40,7 @@ export default function NewTripPage() {
         Create a new trip
       </h1>
       <p className="mt-1 text-slate-600">
-        Add the basics. You can invite family and add activities next.
+        Add the basics. You can invite people and add activities next.
       </p>
       <form onSubmit={handleSubmit} className="card mt-6 space-y-4 p-6">
         <div>

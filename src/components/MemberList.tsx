@@ -15,7 +15,7 @@ function getInitials(name: string) {
 
 export function MemberList({ tripId, members = [], onUpdate }: MemberListProps) {
   async function handleRemove(memberId: string) {
-    if (confirm("Remove this family member from the trip?")) {
+    if (confirm("Remove this group member from the trip?")) {
       await removeMember(tripId, memberId);
       onUpdate();
     }
@@ -24,7 +24,7 @@ export function MemberList({ tripId, members = [], onUpdate }: MemberListProps) 
   if (members.length === 0) {
     return (
       <div className="card border-dashed border-sky-200 p-6 text-center text-slate-500">
-        No members yet. Invite family to join the trip.
+        No members yet. Invite people to join the trip.
       </div>
     );
   }

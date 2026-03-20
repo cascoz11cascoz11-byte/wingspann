@@ -34,7 +34,7 @@ export function InviteMember({ tripId, onInvited }: InviteMemberProps) {
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className="btn-primary text-sm">
-        Invite family
+        Invite people
       </button>
 
       {open && (
@@ -42,7 +42,7 @@ export function InviteMember({ tripId, onInvited }: InviteMemberProps) {
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={close} />
           <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4">
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-semibold text-sky-700">Invite family</h3>
+              <h3 className="font-display text-lg font-semibold text-sky-700">Invite people</h3>
               <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
             </div>
             <form onSubmit={handleSubmit} className="space-y-3">

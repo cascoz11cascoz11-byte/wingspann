@@ -137,7 +137,7 @@ export default function TripDetailPage() {
         <div className="space-y-10">
           <section>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-lg font-semibold text-sky-700">Family members</h2>
+              <h2 className="font-display text-lg font-semibold text-sky-700">Group members</h2>
               <div className="flex gap-2">
                 <CarOrganizer tripId={trip.id} members={trip.members} />
                 <RoomPicker members={trip.members} />

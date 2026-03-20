@@ -26,7 +26,7 @@ export default function HomePage() {
       {/* Hero */}
       <div className="mb-6">
         <p className="font-display text-xl font-semibold text-amber-600">
-          Family adventures, perfectly planned ✈️
+          Group adventures, perfectly planned ✈️
         </p>
         <div className="mt-3 flex gap-2">
           <HomeActivityFinder trips={trips} />
