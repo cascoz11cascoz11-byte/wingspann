@@ -613,3 +613,47 @@ function mapExpense(data: any): Expense {
     createdAt: data.created_at,
   };
 }
+// Notifications
+export interface AppNotification {
+  id: string;
+  userId: string;
+  type: string;
+  title: string;
+  body: string;
+  link?: string;
+  read: boolean;
+  createdAt: string;
+}
+
+export async function getNotifications(): Promise<AppNotification[]> {
+  const userId = await getUserId();
+  if (!userId) return [];
+  const { data } = await db().from("notifications").select("*").eq("user_id", userId).order("created_at", { ascending: false }).limit(50);
+  return (data ?? []).map(mapNotification);
+}
+
+export async function markNotificationsRead(): Promise<void> {
+  const userId = await getUserId();
+  if (!userId) return;
+  await db().from("notifications").update({ read: true }).eq("user_id", userId).eq("read", false);
+}
+
+export async function getUnreadCount(): Promise<number> {
+  const userId = await getUserId();
+  if (!userId) return 0;
+  const { count } = await db().from("notifications").select("*", { count: "exact", head: true }).eq("user_id", userId).eq("read", false);
+  return count ?? 0;
+}
+
+function mapNotification(data: any): AppNotification {
+  return {
+    id: data.id,
+    userId: data.user_id,
+    type: data.type,
+    title: data.title,
+    body: data.body,
+    link: data.link,
+    read: data.read,
+    createdAt: data.created_at,
+  };
+}
