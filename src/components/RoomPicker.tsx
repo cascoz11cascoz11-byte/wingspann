@@ -11,9 +11,7 @@ const CARD_COLORS = [
   "bg-emerald-400", "bg-orange-400", "bg-pink-400", "bg-teal-400",
 ];
 
-function sleep(ms: number) {
-  return new Promise((r) => setTimeout(r, ms));
-}
+const MEDALS = ["🥇", "🥈", "🥉"];
 
 function shuffleArray<T>(arr: T[]): T[] {
   const a = [...arr];
@@ -24,139 +22,174 @@ function shuffleArray<T>(arr: T[]): T[] {
   return a;
 }
 
-interface CardPos {
+function sleep(ms: number) {
+  return new Promise((r) => setTimeout(r, ms));
+}
+
+interface CardState {
+  member: FamilyMember;
+  colorIndex: number;
   x: number;
   y: number;
   rotate: number;
   zIndex: number;
   faceDown: boolean;
+  dealt: boolean;
 }
 
 export function RoomPicker({ members }: RoomPickerProps) {
   const [open, setOpen] = useState(false);
-  const [phase, setPhase] = useState<"idle" | "animating" | "dealing" | "done">("idle");
-  const [memberOrder, setMemberOrder] = useState<FamilyMember[]>([]);
-  const [positions, setPositions] = useState<CardPos[]>([]);
-  const [dealtCount, setDealtCount] = useState(0);
+  const [phase, setPhase] = useState<"idle" | "shuffling" | "done">("idle");
+  const [cards, setCards] = useState<CardState[]>([]);
 
   const accepted = members.filter((m) => m.status === "accepted");
+  const total = accepted.length;
 
-  function stackPos(i: number, total: number): CardPos {
-    return {
+  function stackCards(memberList: FamilyMember[]): CardState[] {
+    return memberList.map((member, i) => ({
+      member,
+      colorIndex: i % CARD_COLORS.length,
       x: (Math.random() - 0.5) * 4,
-      y: -(total - 1 - i) * 2.5,
+      y: -(total - 1 - i) * 2,
       rotate: (Math.random() - 0.5) * 4,
       zIndex: i,
       faceDown: true,
+      dealt: false,
+    }));
+  }
+
+  function dealtPosition(index: number, total: number) {
+    const cols = Math.min(total, 4);
+    const col = index % cols;
+    const row = Math.floor(index / cols);
+    const spacing = Math.min(96, 320 / cols);
+    const startX = -(cols - 1) * spacing / 2;
+    return {
+      x: startX + col * spacing,
+      y: row * 110,
     };
   }
 
   async function startShuffle() {
-    setDealtCount(0);
-    setPhase("animating");
-
-    const total = accepted.length;
+    setPhase("shuffling");
     let order = shuffleArray(accepted);
-    setMemberOrder(order);
 
-    // Step 1: Fan out face up
-    const fanned: CardPos[] = order.map((_, i) => {
-      const angle = (i - (total - 1) / 2) * Math.min(22, 100 / total);
-      const radius = Math.min(80, 30 + total * 8);
+    // Step 1: Stack face down
+    let stack = stackCards(order);
+    setCards(stack);
+    await sleep(600);
+
+    // Step 2: Fan out face up
+    const fanned = order.map((member, i) => {
+      const angle = (i - (total - 1) / 2) * Math.min(20, 90 / total);
+      const radius = Math.min(75, 30 + total * 7);
       return {
+        member,
+        colorIndex: i % CARD_COLORS.length,
         x: Math.sin((angle * Math.PI) / 180) * radius,
-        y: -Math.abs(Math.sin((angle * Math.PI) / 180)) * 14,
+        y: -Math.abs(Math.sin((angle * Math.PI) / 180)) * 12,
         rotate: angle,
         zIndex: i,
         faceDown: false,
+        dealt: false,
       };
     });
-    setPositions(fanned);
-    await sleep(800);
+    setCards(fanned);
+    await sleep(700);
 
-    // Step 2: Flip face down
-    setPositions(fanned.map((p) => ({ ...p, faceDown: true })));
+    // Step 3: Flip face down
+    setCards(fanned.map((c) => ({ ...c, faceDown: true })));
     await sleep(500);
 
-    // Step 3: Split to two piles
+    // Step 4: Split to two piles
     const half = Math.ceil(total / 2);
-    const split: CardPos[] = order.map((_, i) => ({
-      x: i < half ? -52 : 52,
+    setCards(order.map((member, i) => ({
+      member,
+      colorIndex: i % CARD_COLORS.length,
+      x: i < half ? -50 : 50,
       y: -(i < half ? i : i - half) * 2.5,
-      rotate: (i < half ? -6 : 6) + (Math.random() - 0.5) * 3,
+      rotate: (i < half ? -5 : 5) + (Math.random() - 0.5) * 2,
       zIndex: i < half ? i : i - half,
       faceDown: true,
-    }));
-    setPositions(split);
-    await sleep(700);
+      dealt: false,
+    })));
+    await sleep(650);
 
-    // Step 4: Merge back into stack
+    // Step 5: Merge back
     order = shuffleArray(order);
-    setMemberOrder([...order]);
-    setPositions(order.map((_, i) => stackPos(i, total)));
-    await sleep(700);
+    stack = stackCards(order);
+    setCards(stack);
+    await sleep(650);
 
-    // Step 5: Split again
-    const split2: CardPos[] = order.map((_, i) => ({
-      x: i < half ? -52 : 52,
+    // Step 6: Split again
+    setCards(order.map((member, i) => ({
+      member,
+      colorIndex: i % CARD_COLORS.length,
+      x: i < half ? -50 : 50,
       y: -(i < half ? i : i - half) * 2.5,
-      rotate: (i < half ? -6 : 6) + (Math.random() - 0.5) * 3,
+      rotate: (i < half ? -5 : 5) + (Math.random() - 0.5) * 2,
       zIndex: i < half ? i : i - half,
       faceDown: true,
-    }));
-    setPositions(split2);
-    await sleep(700);
+      dealt: false,
+    })));
+    await sleep(650);
 
-    // Step 6: Final stack
+    // Step 7: Final stack
     order = shuffleArray(order);
-    setMemberOrder([...order]);
-    const finalStack = order.map((_, i) => stackPos(i, total));
-    setPositions(finalStack);
-    await sleep(700);
+    stack = stackCards(order);
+    setCards(stack);
+    await sleep(650);
 
-    // Step 7: Deal all cards one by one from top
-    setPhase("dealing");
-    for (let dealt = 0; dealt < total; dealt++) {
-      await sleep(420);
-      setDealtCount(dealt + 1);
-      // Remove top card from stack by moving it off screen
-      setPositions((prev) => {
+    // Step 8: Deal out one by one to poker positions, flip face up
+    for (let i = 0; i < total; i++) {
+      await sleep(380);
+      const pos = dealtPosition(i, total);
+      setCards((prev) => {
         const updated = [...prev];
-        const topIdx = total - 1 - dealt;
+        const topIdx = total - 1 - i;
         if (updated[topIdx]) {
-          updated[topIdx] = { ...updated[topIdx], x: 0, y: -120, rotate: 0, faceDown: false, zIndex: 99 };
+          updated[topIdx] = {
+            ...updated[topIdx],
+            x: pos.x,
+            y: pos.y + 60,
+            rotate: (Math.random() - 0.5) * 3,
+            zIndex: 10 + i,
+            faceDown: false,
+            dealt: true,
+          };
         }
         return updated;
       });
     }
 
-    await sleep(300);
     setPhase("done");
   }
 
   function close() {
     setOpen(false);
     setPhase("idle");
-    setMemberOrder([]);
-    setPositions([]);
-    setDealtCount(0);
+    setCards([]);
   }
 
-  const isAnimating = phase === "animating" || phase === "dealing";
-  const total = accepted.length;
+  const isShuffling = phase === "shuffling";
+
+  // Calculate container height based on rows needed
+  const cols = Math.min(total, 4);
+  const rows = Math.ceil(total / cols);
+  const containerHeight = phase === "idle" ? 140 : phase === "shuffling" && cards.some((c) => !c.dealt) ? 140 : 80 + rows * 115;
 
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} className="btn-secondary text-sm">
-        🎲 Pick rooms
+        🃏 Pick rooms
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={close} />
-          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 space-y-5">
+          <div className="relative w-full max-w-md rounded-2xl bg-white shadow-2xl p-6 space-y-5 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between">
-              <h3 className="font-display text-lg font-semibold text-sky-700">🎲 Room pick order</h3>
+              <h3 className="font-display text-lg font-semibold text-sky-700">🃏 Room pick order</h3>
               <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
             </div>
 
@@ -164,64 +197,56 @@ export function RoomPicker({ members }: RoomPickerProps) {
               <p className="text-sm text-slate-500">No accepted members yet — invite people first!</p>
             ) : (
               <>
-                <div className="relative h-44 flex items-center justify-center overflow-visible">
-                  {memberOrder.map((member, i) => {
-                    const pos = positions[i];
-                    if (!pos) return null;
-                    const color = CARD_COLORS[i % CARD_COLORS.length];
+                <div
+                  className="relative flex items-start justify-center overflow-visible transition-all duration-500"
+                  style={{ height: containerHeight }}
+                >
+                  {phase === "idle" && (
+                    <div className="flex gap-3 pt-4">
+                      {accepted.map((_, i) => (
+                        <div key={i} className="w-20 h-28 rounded-2xl bg-slate-100 border-2 border-dashed border-slate-200" />
+                      ))}
+                    </div>
+                  )}
+
+                  {cards.map((card, i) => {
+                    const dealIndex = cards.filter((c, ci) => c.dealt && ci <= i).length - 1;
+                    const medal = card.dealt ? MEDALS[dealIndex] ?? null : null;
                     return (
                       <div
-                        key={member.id + "-" + i}
-                        className={"absolute w-16 h-24 rounded-xl shadow-lg flex items-center justify-center select-none text-xs font-bold text-center px-1 leading-tight " + (pos.faceDown ? "bg-slate-700" : color + " text-white")}
+                        key={card.member.id + "-" + i}
+                        className={"absolute w-20 h-28 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-1 select-none text-xs font-bold text-center px-2 leading-tight " + (card.faceDown ? "bg-slate-700" : CARD_COLORS[card.colorIndex] + " text-white")}
                         style={{
-                          transform: `translate(${pos.x}px, ${pos.y}px) rotate(${pos.rotate}deg)`,
-                          zIndex: pos.zIndex,
-                          transition: "transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.35s ease",
+                          transform: `translate(${card.x}px, ${card.y}px) rotate(${card.rotate}deg)`,
+                          zIndex: card.zIndex,
+                          transition: "transform 0.55s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.3s ease",
                         }}
                       >
-                        {pos.faceDown
-                          ? <span className="text-slate-500 text-xl">🂠</span>
-                          : member.name}
+                        {card.faceDown ? (
+                          <span className="text-slate-500 text-xl">🂠</span>
+                        ) : (
+                          <>
+                            {medal && <span className="text-lg">{medal}</span>}
+                            <span>{card.member.name}</span>
+                          </>
+                        )}
                       </div>
                     );
                   })}
                 </div>
 
-                {dealtCount > 0 && (
-                  <ul className="space-y-2 max-h-56 overflow-y-auto">
-                    {memberOrder.slice(total - dealtCount).reverse().map((member, index) => (
-                      <li
-                        key={member.id + "-dealt-" + index}
-                        className={"flex items-center gap-3 rounded-xl px-4 py-3 border " + (index === 0 ? "bg-amber-50 border-amber-200" : "bg-sky-50 border-sky-100")}
-                        style={{ animation: "dealIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1)" }}
-                      >
-                        <span className={"flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-sm font-bold text-white " + CARD_COLORS[(total - dealtCount + index) % CARD_COLORS.length]}>
-                          {index + 1}
-                        </span>
-                        <span className="font-medium text-slate-800">{member.name}</span>
-                        {index === 0 && (
-                          <span className="ml-auto text-xs text-amber-500 font-medium">Picks first 👑</span>
-                        )}
-                      </li>
-                    ))}
-                  </ul>
+                {phase === "done" && (
+                  <p className="text-center text-xs text-slate-400">Left to right = pick order</p>
                 )}
 
                 <button
                   type="button"
                   onClick={startShuffle}
-                  disabled={isAnimating}
+                  disabled={isShuffling}
                   className="btn-primary w-full py-3"
                 >
-                  {isAnimating ? "🎲 Shuffling..." : phase === "done" ? "🎲 Re-shuffle!" : "🎲 Shuffle & deal"}
+                  {isShuffling ? "🃏 Shuffling..." : phase === "done" ? "🃏 Re-shuffle!" : "🃏 Shuffle & deal"}
                 </button>
-
-                <style>{`
-                  @keyframes dealIn {
-                    from { opacity: 0; transform: translateY(-16px) scale(0.92); }
-                    to { opacity: 1; transform: translateY(0) scale(1); }
-                  }
-                `}</style>
               </>
             )}
           </div>
