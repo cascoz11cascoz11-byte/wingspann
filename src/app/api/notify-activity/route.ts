@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       allUserIds.push(...matchedIds);
     }
 
-    const uniqueUserIds = [...new Set(allUserIds)];
+    const uniqueUserIds = allUserIds.filter((id, i, arr) => arr.indexOf(id) === i);
     if (uniqueUserIds.length === 0) {
       return NextResponse.json({ message: "No one to notify" });
     }
