@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
+import Script from "next/script";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -48,6 +49,27 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className="min-h-screen font-sans">
+        <Script
+          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
+          defer
+          strategy="afterInteractive"
+        />
+        <Script id="onesignal-init" strategy="afterInteractive">{`
+          window.OneSignalDeferred = window.OneSignalDeferred || [];
+          OneSignalDeferred.push(async function(OneSignal) {
+            await OneSignal.init({
+              appId: "68f645ed-1d8f-4e5c-97bb-1548062edcd8",
+              safari_web_id: "web.onesignal.auto.18427476-d96c-4d38-9e88-40d33a9d693d",
+              notifyButton: {
+                enable: true,
+              },
+              welcomeNotification: {
+                title: "Wingspann",
+                message: "Thanks for subscribing! We'll notify you about trip updates.",
+              },
+            });
+          });
+        `}</Script>
         <Header />
         <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           {children}
