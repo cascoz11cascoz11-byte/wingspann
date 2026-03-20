@@ -123,15 +123,13 @@ export default function HomePage() {
 
   return (
     <div>
-      <div className="mb-6">
-        <p className="font-display text-xl font-semibold text-amber-600">
-          Group adventures, perfectly planned ✈️
-        </p>
-        <div className="mt-3 flex gap-2">
+      <div className="mt-3 flex gap-2 flex-wrap">
           <HomeActivityFinder trips={trips} />
           <StandaloneEventCreator />
+          <Link href="/trips/new" className="btn-primary text-sm whitespace-nowrap">
+            + New trip
+          </Link>
         </div>
-      </div>
 
       <div className="flex gap-6 border-b border-slate-200 mb-6 overflow-x-auto">
         <button type="button" onClick={() => setTab("notifications")} className={tab === "notifications" ? activeTab : inactiveTab}>
