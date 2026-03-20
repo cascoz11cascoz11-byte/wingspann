@@ -124,7 +124,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
         const updated = [...prev];
         const topIdx = total - 1 - dealt;
         if (updated[topIdx]) {
-          updated[topIdx] = { ...updated[topIdx], x: 200, y: -60, rotate: 20, faceDown: false };
+          updated[topIdx] = { ...updated[topIdx], x: 0, y: -120, rotate: 0, faceDown: false, zIndex: 99 };
         }
         return updated;
       });
