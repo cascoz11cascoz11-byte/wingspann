@@ -113,6 +113,7 @@ function NotificationsTab() {
 export default function HomePage() {
   const [tab, setTab] = useState<Tab>("notifications");
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [hasScrolledTabs, setHasScrolledTabs] = useState(false);
 
   useEffect(() => {
     getTrips().then(setTrips);
@@ -137,9 +138,13 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Tabs with fade hint */}
-      <div className="relative mb-6">
-        <div className="flex gap-6 border-b border-slate-200 overflow-x-auto pb-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+      {/* Tabs */}
+      <div className="mb-6">
+        <div
+          className="flex gap-6 border-b border-slate-200 overflow-x-auto"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+          onScroll={() => setHasScrolledTabs(true)}
+        >
           <button type="button" onClick={() => setTab("notifications")} className={tab === "notifications" ? activeTab : inactiveTab}>
             🔔 Notifications
           </button>
@@ -153,8 +158,9 @@ export default function HomePage() {
             🌟 Wishlist
           </Link>
         </div>
-        {/* Fade gradient hint */}
-        <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-white to-transparent" />
+        {!hasScrolledTabs && (
+          <p className="text-xs text-slate-400 mt-1 text-right">scroll for more →</p>
+        )}
       </div>
 
       {tab === "notifications" && <NotificationsTab />}
