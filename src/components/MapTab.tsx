@@ -23,9 +23,9 @@ function getDayLabel(dateStr: string): string {
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short" });
 }
 
-function groupByDate(activities: Activity[]): string[] {
-  const dates = [...new Set(activities.map((a) => a.date))].sort();
-  return dates;
+function getDateLabel(dateStr: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
 export function MapTab({ activities, destination }: { activities: Activity[]; destination: string }) {
@@ -37,16 +37,16 @@ export function MapTab({ activities, destination }: { activities: Activity[]; de
   const [loaded, setLoaded] = useState(false);
 
   const withLocation = activities.filter((a) => a.location);
-  const dates = groupByDate(withLocation);
-
-  const filtered = selectedDate === "all"
-    ? withLocation
-    : withLocation.filter((a) => a.date === selectedDate);
+  const dates = [...new Set(withLocation.map((a) => a.date))].sort();
+  const filtered = selectedDate === "all" ? withLocation : withLocation.filter((a) => a.date === selectedDate);
 
   useEffect(() => {
     const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!apiKey || typeof window === "undefined") return;
-    if ((window as any).google?.maps) { setLoaded(true); return; }
+    if ((window as any).google?.maps) {
+      setLoaded(true);
+      return;
+    }
     const script = document.createElement("script");
     script.src = "https://maps.googleapis.com/maps/api/js?key=" + apiKey;
     script.async = true;
@@ -81,7 +81,10 @@ export function MapTab({ activities, destination }: { activities: Activity[]; de
 
     filtered.forEach((activity) => {
       geocoder.geocode({ address: activity.location }, (results: any, status: any) => {
-        if (status !== "OK" || !results[0]) { geocoded++; return; }
+        if (status !== "OK" || !results[0]) {
+          geocoded++;
+          return;
+        }
         const pos = results[0].geometry.location;
         bounds.extend(pos);
 
@@ -91,12 +94,7 @@ export function MapTab({ activities, destination }: { activities: Activity[]; de
         const marker = new google.maps.Marker({
           position: pos,
           map,
-          label: {
-            text: label,
-            color: "#fff",
-            fontSize: "10px",
-            fontWeight: "bold",
-          },
+          label: { text: label, color: "#fff", fontSize: "10px", fontWeight: "bold" },
           icon: {
             path: google.maps.SymbolPath.CIRCLE,
             fillColor: color,
@@ -109,20 +107,19 @@ export function MapTab({ activities, destination }: { activities: Activity[]; de
         });
 
         marker.addListener("click", () => {
-          const directionsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(activity.location!);
-          const content = [
-            '<div style="font-family:sans-serif;padding:4px 2px;min-width:160px">',
-            '<p style="font-weight:600;margin:0 0 4px">' + activity.title + '</p>',
-            '<p style="color:#64748b;font-size:12px;margin:0 0 8px">' + (activity.location ?? '') + '</p>',
-            '<a href="' + directionsUrl + '" target="_blank" style="background:#0ea5e9;color:#fff;padding:4px 10px;border-radius:8px;font-size:12px;text-decoration:none">Directions</a>',
-            '</div>'
-          ].join('');
-          infoWindowRef.current.setContent(content);
+          const directionsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(activity.location ?? "");
+          const html = '<div style="font-family:sans-serif;padding:4px 2px;min-width:160px">'
+            + '<p style="font-weight:600;margin:0 0 4px">' + activity.title + '</p>'
+            + '<p style="color:#64748b;font-size:12px;margin:0 0 8px">' + (activity.location ?? "") + '</p>'
+            + '<a href="' + directionsUrl + '" target="_blank" style="background:#0ea5e9;color:#fff;padding:4px 10px;border-radius:8px;font-size:12px;text-decoration:none">Directions</a>'
+            + '</div>';
+          infoWindowRef.current.setContent(html);
           infoWindowRef.current.open(map, marker);
         });
 
         markersRef.current.push(marker);
         geocoded++;
+
         if (geocoded === filtered.length) {
           if (filtered.length === 1) {
             map.setCenter(pos);
@@ -162,17 +159,17 @@ export function MapTab({ activities, destination }: { activities: Activity[]; de
             onClick={() => setSelectedDate(date)}
             className={"rounded-full px-3 py-1 text-xs font-medium border-2 transition " + (selectedDate === date ? "border-sky-400 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-500 hover:border-sky-200")}
           >
-            {getDayLabel(date)} · {new Date(date + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" })}
+            {getDateLabel(date)}
           </button>
         ))}
       </div>
 
       <div ref={mapRef} className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm" style={{ height: 380 }} />
 
-      <div className="flex flex-wrap gap-2">
-        {Objct.entries(TYPE_COLORS).map(([type, color]) => (
+      <div className="flex flex-wrap gap-3">
+        {Object.entries(TYPE_COLORS).map(([type, color]) => (
           <div key={type} className="flex items-center gap-1.5">
-            <div className="w-3 h-3 rounded-full" style={{ backgroundColor: color }} />
+            <div className="w-3 h-3 rounded-full shrink-0" style={{ backgroundColor: color }} />
             <span className="text-xs text-slate-500">{TYPE_LABELS[type]}</span>
           </div>
         ))}
@@ -188,8 +185,8 @@ export function MapTab({ activities, destination }: { activities: Activity[]; de
                 <p className="text-xs text-slate-500 truncate">📍 {activity.location}</p>
               </div>
             </div>
-            
-              href={"https://www.google.com/maps/dir/?i=1&destination=" + encodeURIComponent(activity.location!)}
+            <a
+              href={"https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(activity.location ?? "")}
               target="_blank"
               rel="noopener noreferrer"
               className="rounded-xl bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 text-xs font-medium transition shrink-0"
