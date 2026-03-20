@@ -11,6 +11,7 @@ export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [tripsOpen, setTripsOpen] = useState(false);
+  const [spinning, setSpinning] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -38,6 +39,11 @@ export function Header() {
     router.refresh();
   }
 
+  function handleRefresh() {
+    setSpinning(true);
+    setTimeout(() => window.location.reload(), 300);
+  }
+
   function close() {
     setMenuOpen(false);
     setTripsOpen(false);
@@ -46,9 +52,20 @@ export function Header() {
   return (
     <header className="border-b-2 border-sky-100 bg-white/95 shadow-sm shadow-sky-100/50 backdrop-blur-sm relative z-50">
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
-        <Link href="/">
-          <img src="/logo.png" alt="Wingspann" className="h-10 w-auto" />
-        </Link>
+        <div className="flex items-center gap-3">
+          <Link href="/">
+            <img src="/logo.png" alt="Wingspann" className="h-10 w-auto" />
+          </Link>
+          <button
+            type="button"
+            onClick={handleRefresh}
+            aria-label="Refresh"
+            className="text-slate-400 hover:text-sky-500 transition-colors text-xl leading-none"
+            style={{ display: "inline-block", transform: spinning ? "rotate(360deg)" : "rotate(0deg)", transition: "transform 0.3s ease" }}
+          >
+            ↻
+          </button>
+        </div>
 
         <div className="relative" ref={menuRef}>
           <button
