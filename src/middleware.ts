@@ -26,7 +26,10 @@ export async function middleware(request: NextRequest) {
     !request.nextUrl.pathname.startsWith("/login") &&
     !request.nextUrl.pathname.startsWith("/signup") &&
     !request.nextUrl.pathname.startsWith("/api/") &&
-    !request.nextUrl.pathname.startsWith("/join/")
+    !request.nextUrl.pathname.startsWith("/join/") &&
+    !request.nextUrl.pathname.startsWith("/events/") &&
+    !request.nextUrl.pathname.startsWith("/boards/join/") &&
+    !request.nextUrl.pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|json|txt)$/)
   ) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
@@ -37,5 +40,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.ico|.*\\.json).*)"],
 };
