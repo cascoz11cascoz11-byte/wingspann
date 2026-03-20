@@ -135,10 +135,12 @@ export async function createTrip(data: Omit<Trip, "id" | "createdAt" | "activiti
   }).select("*, members(*), activities(*, activity_participants(*))").single();
   if (error) throw new Error(error.message);
   return mapTrip(trip);
-  export async function deleteTrip(id: string): Promise<boolean> {
-    const { error } = await db().from("trips").delete().eq("id", id);
-    return !error;
-  }
+}
+
+export async function deleteTrip(id: string): Promise<boolean> {
+  const { error } = await db().from("trips").delete().eq("id", id);
+  return !error;
+}
 
 
 export async function addMember(tripId: string, member: Omit<FamilyMember, "id">): Promise<FamilyMember | undefined> {
