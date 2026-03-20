@@ -63,7 +63,6 @@ function MapTab({ activities, destination }: { activities: Activity[]; destinati
 
   return (
     <div className="space-y-4">
-      {/* Map embed */}
       <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
         <iframe
           width="100%"
