@@ -60,8 +60,8 @@ export function StandaloneEventCreator() {
 
   return (
     <>
-      <button type="button" onClick={() => setOpen(true)} className="btn-secondary text-sm whitespace-nowrap">
-        🎉 New event
+        <button type="button" onClick={() => setOpen(true)} className="btn-primary text-sm whitespace-nowrap">
+        + New event
       </button>
 
       {open && (
