@@ -21,16 +21,18 @@ export async function middleware(request: NextRequest) {
 
   const { data: { user } } = await supabase.auth.getUser();
 
-  if (
-    !user &&
-    !request.nextUrl.pathname.startsWith("/login") &&
-    !request.nextUrl.pathname.startsWith("/signup") &&
-    !request.nextUrl.pathname.startsWith("/api/") &&
-    !request.nextUrl.pathname.startsWith("/join/") &&
-    !request.nextUrl.pathname.startsWith("/events/") &&
-    !request.nextUrl.pathname.startsWith("/boards/join/") &&
-    !request.nextUrl.pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|json|txt)$/)
-  ) {
+  const { pathname } = request.nextUrl;
+
+  // Always allow public assets
+  if (pathname.match(/\.(png|jpg|jpeg|gif|svg|ico|webp|json|txt|xml)$/)) {
+    return supabaseResponse;
+  }
+
+  // Public routes that don't need auth
+  const publicRoutes = ["/login", "/signup", "/join/", "/events/", "/boards/join/", "/api/"];
+  const isPublic = publicRoutes.some(route => pathname.startsWith(route));
+
+  if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = "/login";
     return NextResponse.redirect(url);
@@ -40,5 +42,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.png|.*\\.jpg|.*\\.svg|.*\\.ico|.*\\.json).*)"],
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
 };
