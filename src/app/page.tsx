@@ -5,11 +5,11 @@ import { HomeActivityFinder } from "@/components/HomeActivityFinder";
 import { HomeCalendar } from "@/components/HomeCalendar";
 import { StandaloneEventCreator } from "@/components/StandaloneEventCreator";
 import Link from "next/link";
-import { getTrips, getNotifications, markNotificationsRead } from "@/lib/store";
+import { getTrips, getNotifications, markNotificationsRead, getStandaloneEvents, removeStandaloneEvent } from "@/lib/store";
 import type { Trip } from "@/types";
-import type { AppNotification } from "@/lib/store";
+import type { AppNotification, StandaloneEvent } from "@/lib/store";
 
-type Tab = "notifications" | "trips" | "calendar";
+type Tab = "notifications" | "trips" | "calendar" | "events";
 
 const TYPE_CONFIG: Record<string, { emoji: string; color: string }> = {
   activity_added: { emoji: "🎯", color: "bg-sky-100 text-sky-700" },
@@ -30,6 +30,17 @@ function formatTime(dateStr: string): string {
   if (hours < 24) return hours + "h ago";
   if (days < 7) return days + "d ago";
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatEventDate(dateStr: string, time?: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const label = date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  if (!time) return label;
+  const [h, min] = time.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hour = h % 12 || 12;
+  return label + " at " + hour + ":" + min.toString().padStart(2, "0") + " " + ampm;
 }
 
 function NotificationsTab() {
@@ -98,13 +109,105 @@ function NotificationsTab() {
             onClick={() => setShowOld((p) => !p)}
             className="w-full rounded-xl border-2 border-dashed border-slate-200 py-2.5 text-sm text-slate-400 hover:border-sky-200 hover:text-sky-500 transition"
           >
-            {showOld
-              ? "Hide older notifications"
-              : "Show " + oldNotifications.length + " older notification" + (oldNotifications.length === 1 ? "" : "s")}
+            {showOld ? "Hide older notifications" : "Show " + oldNotifications.length + " older notification" + (oldNotifications.length === 1 ? "" : "s")}
           </button>
           {showOld && oldNotifications.map((n) => <NotifCard key={n.id} n={n} />)}
         </>
       )}
+    </div>
+  );
+}
+
+function EventsTab() {
+  const [events, setEvents] = useState<StandaloneEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function load() {
+      const data = await getStandaloneEvents();
+      setEvents(data);
+      setLoading(false);
+    }
+    load();
+  }, []);
+
+  async function handleRemove(id: string) {
+    if (!confirm("Delete this event?")) return;
+    await removeStandaloneEvent(id);
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  function copyInviteLink(inviteCode: string, id: string) {
+    navigator.clipboard.writeText(window.location.origin + "/events/" + inviteCode);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  if (loading) return <p className="text-slate-500 text-center py-12">Loading...</p>;
+
+  if (events.length === 0) return (
+    <div className="card border-dashed border-sky-200 p-8 text-center space-y-2">
+      <p className="text-3xl">🎉</p>
+      <p className="text-slate-600 font-medium">No events yet</p>
+      <p className="text-sm text-slate-400">Create a standalone event to invite people without a full trip.</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      {events.map((event) => {
+        const accepted = event.members.filter((m) => m.status === "accepted").length;
+        const pending = event.members.filter((m) => m.status === "pending").length;
+        const declined = event.members.filter((m) => m.status === "declined").length;
+        return (
+          <div key={event.id} className="card p-4 space-y-3">
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-slate-800">{event.title}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{formatEventDate(event.date, event.time)}</p>
+                {event.location && <p className="text-xs text-slate-500">📍 {event.location}</p>}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleRemove(event.id)}
+                className="text-xs text-red-300 hover:text-red-500 transition shrink-0"
+              >
+                Delete
+              </button>
+            </div>
+
+            {event.members.length > 0 && (
+              <div className="flex flex-wrap gap-1">
+                {event.members.map((m) => (
+                  <span key={m.id} className={"rounded-full px-2 py-0.5 text-xs font-medium " +
+                    (m.status === "accepted" ? "bg-emerald-100 text-emerald-700" :
+                     m.status === "declined" ? "bg-red-100 text-red-600" :
+                     "bg-slate-100 text-slate-500")}>
+                    {m.name || m.email}
+                  </span>
+                ))}
+              </div>
+            )}
+
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex gap-3 text-xs text-slate-500">
+                {accepted > 0 && <span className="text-emerald-600">{accepted} going</span>}
+                {pending > 0 && <span>{pending} pending</span>}
+                {declined > 0 && <span className="text-red-400">{declined} declined</span>}
+                {event.members.length === 0 && <span>No invites yet</span>}
+              </div>
+              <button
+                type="button"
+                onClick={() => copyInviteLink(event.inviteCode, event.id)}
+                className="text-xs text-sky-600 hover:underline shrink-0"
+              >
+                {copied === event.id ? "Copied!" : "Copy invite"}
+              </button>
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -163,6 +266,9 @@ export default function HomePage() {
           <button type="button" onClick={() => setTab("trips")} className={tab === "trips" ? activeTab : inactiveTab}>
             ✈️ Trips
           </button>
+          <button type="button" onClick={() => setTab("events")} className={tab === "events" ? activeTab : inactiveTab}>
+            🎉 Events
+          </button>
           <button type="button" onClick={() => setTab("calendar")} className={tab === "calendar" ? activeTab : inactiveTab}>
             📅 Calendar
           </button>
@@ -183,6 +289,7 @@ export default function HomePage() {
 
       {tab === "notifications" && <NotificationsTab />}
       {tab === "trips" && <TripList />}
+      {tab === "events" && <EventsTab />}
       {tab === "calendar" && <HomeCalendar trips={trips} />}
     </div>
   );
