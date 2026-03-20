@@ -1,8 +1,8 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
-import { getTrip } from "@/lib/store";
+import { getTrip, deleteTrip } from "@/lib/store";
 import type { Trip } from "@/types";
 import Link from "next/link";
 import { InviteMember } from "@/components/InviteMember";
@@ -38,10 +38,13 @@ function getCountdown(startDate: string, endDate: string): { label: string; colo
 
 export default function TripDetailPage() {
   const params = useParams();
+  const router = useRouter();
   const id = params.id as string;
   const [trip, setTrip] = useState<Trip | null | undefined>(undefined);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"itinerary" | "expenses">("itinerary");
+  const [deleting, setDeleting] = useState(false);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     async function load() {
@@ -68,6 +71,12 @@ export default function TripDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function handleDelete() {
+    setDeleting(true);
+    await deleteTrip(id);
+    router.replace("/");
+  }
+
   if (trip === undefined) {
     return <div className="py-12 text-center"><p className="text-slate-600">Loading...</p></div>;
   }
@@ -85,9 +94,19 @@ export default function TripDetailPage() {
 
   return (
     <div>
-      <Link href="/" className="mb-6 inline-block text-sm text-slate-600 hover:text-sky-600">
-        Back to trips
-      </Link>
+      <div className="flex items-center justify-between mb-6">
+        <Link href="/" className="text-sm text-slate-600 hover:text-sky-600">
+          Back to trips
+        </Link>
+        <button
+          type="button"
+          onClick={() => setShowDeleteConfirm(true)}
+          className="text-xs text-red-400 hover:text-red-600 transition"
+        >
+          Delete trip
+        </button>
+      </div>
+
       <div className="mb-6">
         <div className="flex items-start justify-between gap-4">
           <div>
@@ -156,6 +175,36 @@ export default function TripDetailPage() {
 
       {activeTab === "expenses" && (
         <ExpenseTracker tripId={trip.id} members={trip.members} />
+      )}
+
+      {/* Delete confirm modal */}
+      {showDeleteConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
+          <div className="relative w-full max-w-sm rounded-2xl bg-white shadow-2xl p-6 space-y-4">
+            <h3 className="font-display text-lg font-semibold text-slate-800">Delete trip?</h3>
+            <p className="text-sm text-slate-500">
+              This will permanently delete <span className="font-medium text-slate-700">{trip.name}</span> and all its activities, members, and expenses. This cannot be undone.
+            </p>
+            <div className="flex gap-2 pt-1">
+              <button
+                type="button"
+                onClick={handleDelete}
+                disabled={deleting}
+                className="rounded-xl bg-red-500 hover:bg-red-600 text-white px-4 py-2 text-sm font-medium transition flex-1"
+              >
+                {deleting ? "Deleting..." : "Yes, delete trip"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setShowDeleteConfirm(false)}
+                className="btn-secondary text-sm flex-1"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );
