@@ -23,21 +23,18 @@ export default function HomePage() {
 
   return (
     <div>
-      <div className="mb-8 flex items-start justify-between gap-4">
-        <div>
-          <p className="font-display text-2xl font-semibold text-amber-600 sm:text-3xl">
-            Family adventures, perfectly planned
-          </p>
-          <p className="mt-2 text-slate-600">
-            Create a trip, invite the crew, and plan your itinerary together.
-          </p>
-        </div>
-        <div className="flex gap-2 shrink-0">
+      {/* Hero */}
+      <div className="mb-6">
+        <p className="font-display text-xl font-semibold text-amber-600">
+          Family adventures, perfectly planned ✈️
+        </p>
+        <div className="mt-3 flex gap-2">
           <HomeActivityFinder trips={trips} />
           <StandaloneEventCreator />
         </div>
       </div>
 
+      {/* Tabs */}
       <div className="flex gap-6 border-b border-slate-200 mb-6">
         <button type="button" onClick={() => setTab("trips")} className={tab === "trips" ? activeTab : inactiveTab}>
           ✈️ Trips
