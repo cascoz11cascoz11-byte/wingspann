@@ -3,7 +3,7 @@
 import { useParams, useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { getTrip, deleteTrip } from "@/lib/store";
-import type { Trip } from "@/types";
+import type { Trip, Activity } from "@/types";
 import Link from "next/link";
 import { InviteMember } from "@/components/InviteMember";
 import { MemberList } from "@/components/MemberList";
@@ -36,13 +36,84 @@ function getCountdown(startDate: string, endDate: string): { label: string; colo
   return { label: "In " + days + " days", color: "bg-slate-100 text-slate-500" };
 }
 
+function MapTab({ activities, destination }: { activities: Activity[]; destination: string }) {
+  const withLocation = activities.filter((a) => a.location);
+  const [selected, setSelected] = useState<Activity | null>(null);
+
+  function getDirectionsUrl(location: string) {
+    return "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(location);
+  }
+
+  function getMapsEmbedUrl(location: string) {
+    const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+    return "https://www.google.com/maps/embed/v1/place?key=" + key + "&q=" + encodeURIComponent(location);
+  }
+
+  if (withLocation.length === 0) {
+    return (
+      <div className="card border-dashed border-sky-200 p-8 text-center space-y-2">
+        <p className="text-3xl">🗺️</p>
+        <p className="text-slate-600 font-medium">No locations yet</p>
+        <p className="text-sm text-slate-400">Add locations to your activities to see them on the map.</p>
+      </div>
+    );
+  }
+
+  const mapLocation = selected?.location ?? destination;
+
+  return (
+    <div className="space-y-4">
+      {/* Map embed */}
+      <div className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm">
+        <iframe
+          width="100%"
+          height="320"
+          style={{ border: 0 }}
+          loading="lazy"
+          allowFullScreen
+          src={getMapsEmbedUrl(mapLocation)}
+        />
+      </div>
+
+      {/* Activity list */}
+      <div className="space-y-2">
+        <p className="text-xs font-medium text-slate-500">Tap an activity to see it on the map</p>
+        {withLocation.map((activity) => (
+          <button
+            key={activity.id}
+            type="button"
+            onClick={() => setSelected(selected?.id === activity.id ? null : activity)}
+            className={"card w-full p-4 text-left transition " + (selected?.id === activity.id ? "border-sky-400 bg-sky-50" : "hover:border-sky-200")}
+          >
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-slate-800 text-sm">{activity.title}</p>
+                <p className="text-xs text-slate-500 mt-0.5 truncate">📍 {activity.location}</p>
+              </div>
+              
+                href={getDirectionsUrl(activity.location!)}
+                target="_blank"
+                rel="noopener noreferrer"
+                onClick={(e) => e.stopPropagation()}
+                className="rounded-xl bg-sky-500 hover:bg-sky-600 text-white px-3 py-1.5 text-xs font-medium transition shrink-0"
+              >
+                Directions
+              </a>
+            </div>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 export default function TripDetailPage() {
   const params = useParams();
   const router = useRouter();
   const id = params.id as string;
   const [trip, setTrip] = useState<Trip | null | undefined>(undefined);
   const [copied, setCopied] = useState(false);
-  const [activeTab, setActiveTab] = useState<"itinerary" | "expenses">("itinerary");
+  const [activeTab, setActiveTab] = useState<"itinerary" | "expenses" | "map">("itinerary");
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
@@ -91,6 +162,7 @@ export default function TripDetailPage() {
   }
 
   const countdown = getCountdown(trip.startDate, trip.endDate);
+  const tabClass = (t: string) => "pb-2 text-sm font-medium transition border-b-2 " + (activeTab === t ? "border-sky-500 text-sky-600" : "border-transparent text-slate-500 hover:text-sky-500");
 
   return (
     <div>
@@ -124,12 +196,15 @@ export default function TripDetailPage() {
         </div>
       </div>
 
-      <div className="flex gap-6 border-b border-slate-200 mb-6">
-        <button type="button" onClick={() => setActiveTab("itinerary")} className={"pb-2 text-sm font-medium transition border-b-2 " + (activeTab === "itinerary" ? "border-sky-500 text-sky-600" : "border-transparent text-slate-500 hover:text-sky-500")}>
-          Itinerary
+      <div className="flex gap-6 border-b border-slate-200 mb-6 overflow-x-auto">
+        <button type="button" onClick={() => setActiveTab("itinerary")} className={tabClass("itinerary")}>
+          📅 Itinerary
         </button>
-        <button type="button" onClick={() => setActiveTab("expenses")} className={"pb-2 text-sm font-medium transition border-b-2 " + (activeTab === "expenses" ? "border-sky-500 text-sky-600" : "border-transparent text-slate-500 hover:text-sky-500")}>
-          Expenses
+        <button type="button" onClick={() => setActiveTab("map")} className={tabClass("map")}>
+          🗺️ Map
+        </button>
+        <button type="button" onClick={() => setActiveTab("expenses")} className={tabClass("expenses")}>
+          💸 Expenses
         </button>
       </div>
 
@@ -173,11 +248,14 @@ export default function TripDetailPage() {
         </div>
       )}
 
+      {activeTab === "map" && (
+        <MapTab activities={trip.activities} destination={trip.destination} />
+      )}
+
       {activeTab === "expenses" && (
         <ExpenseTracker tripId={trip.id} members={trip.members} />
       )}
 
-      {/* Delete confirm modal */}
       {showDeleteConfirm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setShowDeleteConfirm(false)} />
