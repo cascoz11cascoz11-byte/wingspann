@@ -159,6 +159,7 @@ export async function removeMember(tripId: string, memberId: string): Promise<bo
 }
 
 export async function addActivity(tripId: string, activity: Omit<Activity, "id" | "createdAt">): Promise<Activity | undefined> {
+  const userId = await getUserId();
   const { data } = await db().from("activities").insert({
     trip_id: tripId,
     title: activity.title,
@@ -177,6 +178,20 @@ export async function addActivity(tripId: string, activity: Omit<Activity, "id" 
     flight_number: activity.flightNumber,
     drive_time: activity.driveTime,
   }).select().single();
+
+  if (data) {
+    // Fire and forget notification
+    fetch("/api/notify-activity", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        tripId,
+        activityTitle: activity.title,
+        addedByUserId: userId,
+      }),
+    }).catch(() => {});
+  }
+
   return data ? mapActivity(data) : undefined;
 }
 

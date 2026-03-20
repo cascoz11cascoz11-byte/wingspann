@@ -2,6 +2,8 @@ import type { Metadata } from "next";
 import { Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
+import { PushSubscriber } from "@/components/PushSubscriber";
+import { PullToRefresh } from "@/components/PullToRefresh";
 import Script from "next/script";
 
 const outfit = Outfit({
@@ -70,7 +72,9 @@ export default function RootLayout({
             });
           });
         `}</Script>
+        <PullToRefresh />
         <Header />
+        <PushSubscriber />
         <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
           {children}
         </main>
