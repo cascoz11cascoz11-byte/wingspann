@@ -44,7 +44,7 @@ export default function TripDetailPage() {
   const [trip, setTrip] = useState<Trip | null | undefined>(undefined);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"itinerary" | "expenses" | "map">("itinerary");
-  const [deleting, setDeleting] useState(false);
+  const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
