@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { TripList } from "@/components/TripList";
 import { HomeActivityFinder } from "@/components/HomeActivityFinder";
 import { HomeCalendar } from "@/components/HomeCalendar";
@@ -91,7 +91,6 @@ function NotificationsTab() {
       ) : (
         newNotifications.map((n) => <NotifCard key={n.id} n={n} />)
       )}
-
       {oldNotifications.length > 0 && (
         <>
           <button
@@ -113,11 +112,23 @@ function NotificationsTab() {
 export default function HomePage() {
   const [tab, setTab] = useState<Tab>("notifications");
   const [trips, setTrips] = useState<Trip[]>([]);
-  const [hasScrolledTabs, setHasScrolledTabs] = useState(false);
+  const [showArrow, setShowArrow] = useState(true);
+  const tabsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getTrips().then(setTrips);
   }, []);
+
+  function handleTabScroll() {
+    if (!tabsRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
+    setShowArrow(scrollLeft + clientWidth < scrollWidth - 10);
+  }
+
+  function handleArrowClick() {
+    if (!tabsRef.current) return;
+    tabsRef.current.scrollBy({ left: 120, behavior: "smooth" });
+  }
 
   const activeTab = "border-b-2 border-sky-500 text-sky-600 font-semibold pb-2 whitespace-nowrap shrink-0";
   const inactiveTab = "text-slate-500 hover:text-sky-500 pb-2 transition whitespace-nowrap shrink-0";
@@ -139,11 +150,12 @@ export default function HomePage() {
       </div>
 
       {/* Tabs */}
-      <div className="mb-6">
+      <div className="relative mb-6">
         <div
+          ref={tabsRef}
+          onScroll={handleTabScroll}
           className="flex gap-6 border-b border-slate-200 overflow-x-auto"
           style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
-          onScroll={() => setHasScrolledTabs(true)}
         >
           <button type="button" onClick={() => setTab("notifications")} className={tab === "notifications" ? activeTab : inactiveTab}>
             🔔 Notifications
@@ -158,8 +170,14 @@ export default function HomePage() {
             🌟 Wishlist
           </Link>
         </div>
-        {!hasScrolledTabs && (
-          <p className="text-xs text-slate-400 mt-1 text-right">scroll for more →</p>
+        {showArrow && (
+          <button
+            type="button"
+            onClick={handleArrowClick}
+            className="absolute right-0 top-0 bottom-1 flex items-center justify-center w-8 bg-gradient-to-l from-white via-white to-transparent text-slate-400 hover:text-sky-500 transition"
+          >
+            ›
+          </button>
         )}
       </div>
 
