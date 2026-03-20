@@ -67,9 +67,9 @@ export default function NotificationsPage() {
                   {config.emoji}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className={"text-sm font-medium text-slate-800 " + (!n.read ? "font-semibold" : "")}>{n.title}</p>
+                  <p className={"text-sm text-slate-800 " + (!n.read ? "font-semibold" : "font-medium")}>{n.title}</p>
                   <p className="text-xs text-slate-500 mt-0.5">{n.body}</p>
-                  <p className="text-xs text-slate-300 mt-1">{formatTime(n.createdAt)}</p>
+                  <p className="text-xs text-slate.300 mt-1">{formatTime(n.createdAt)}</p>
                 </div>
                 {!n.read && <div className="w-2 h-2 rounded-full bg-sky-500 shrink-0 mt-1" />}
               </div>
