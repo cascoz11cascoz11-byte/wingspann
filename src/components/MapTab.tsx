@@ -110,13 +110,14 @@ export function MapTab({ activities, destination }: { activities: Activity[]; de
 
         marker.addListener("click", () => {
           const directionsUrl = "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(activity.location!);
-          infoWindowRef.current.setContent(
-            "<div style=\"font-family:sans-serif;padding:4px 2px;min-width:160px\">" +
-            "<p style=\"font-weight:600;margin:0 0 4px\">" + activity.title + "</p>" +
-            "<p style=\"color:#64748b;font-size:12px;margin:0 0 8px\">" + (activity.location ?? "") + "</p>" +
-            "<a href=\"" + directionsUrl + "\" target=\"_blank\" style=\"background:#0ea5e9;color:#fff;padding:4px 10px;border-radius:8px;font-size:12px;text-decoration:none\">Directions</a>" +
-            "</div>"
-          );
+          const content = [
+            '<div style="font-family:sans-serif;padding:4px 2px;min-width:160px">',
+            '<p style="font-weight:600;margin:0 0 4px">' + activity.title + '</p>',
+            '<p style="color:#64748b;font-size:12px;margin:0 0 8px">' + (activity.location ?? '') + '</p>',
+            '<a href="' + directionsUrl + '" target="_blank" style="background:#0ea5e9;color:#fff;padding:4px 10px;border-radius:8px;font-size:12px;text-decoration:none">Directions</a>',
+            '</div>'
+          ].join('');
+          infoWindowRef.current.setContent(content);
           infoWindowRef.current.open(map, marker);
         });
 
