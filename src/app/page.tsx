@@ -118,8 +118,8 @@ export default function HomePage() {
     getTrips().then(setTrips);
   }, []);
 
-  const activeTab = "border-b-2 border-sky-500 text-sky-600 font-semibold pb-2 whitespace-nowrap";
-  const inactiveTab = "text-slate-500 hover:text-sky-500 pb-2 transition whitespace-nowrap";
+  const activeTab = "border-b-2 border-sky-500 text-sky-600 font-semibold pb-2 whitespace-nowrap shrink-0";
+  const inactiveTab = "text-slate-500 hover:text-sky-500 pb-2 transition whitespace-nowrap shrink-0";
 
   return (
     <div>
@@ -137,20 +137,24 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Tabs */}
-      <div className="flex gap-6 border-b border-slate-200 mb-6 overflow-x-auto">
-        <button type="button" onClick={() => setTab("notifications")} className={tab === "notifications" ? activeTab : inactiveTab}>
-          🔔 Notifications
-        </button>
-        <button type="button" onClick={() => setTab("trips")} className={tab === "trips" ? activeTab : inactiveTab}>
-          ✈️ Trips
-        </button>
-        <button type="button" onClick={() => setTab("calendar")} className={tab === "calendar" ? activeTab : inactiveTab}>
-          📅 Calendar
-        </button>
-        <Link href="/wishlist" className={inactiveTab}>
-          🌟 Wishlist
-        </Link>
+      {/* Tabs with fade hint */}
+      <div className="relative mb-6">
+        <div className="flex gap-6 border-b border-slate-200 overflow-x-auto pb-0" style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}>
+          <button type="button" onClick={() => setTab("notifications")} className={tab === "notifications" ? activeTab : inactiveTab}>
+            🔔 Notifications
+          </button>
+          <button type="button" onClick={() => setTab("trips")} className={tab === "trips" ? activeTab : inactiveTab}>
+            ✈️ Trips
+          </button>
+          <button type="button" onClick={() => setTab("calendar")} className={tab === "calendar" ? activeTab : inactiveTab}>
+            📅 Calendar
+          </button>
+          <Link href="/wishlist" className={inactiveTab}>
+            🌟 Wishlist
+          </Link>
+        </div>
+        {/* Fade gradient hint */}
+        <div className="pointer-events-none absolute right-0 top-0 bottom-1 w-10 bg-gradient-to-l from-white to-transparent" />
       </div>
 
       {tab === "notifications" && <NotificationsTab />}
