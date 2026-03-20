@@ -56,7 +56,7 @@ function MapTab({ activities, destination }: { activities: Activity[]; destinati
         <p className="text-3xl">🗺️</p>
         <p className="text-slate-600 font-medium">No locations yet</p>
         <p className="text-sm text-slate-400">Add locations to your activities to see them on the map.</p>
-  </div>
+      </div>
     );
   }
 
