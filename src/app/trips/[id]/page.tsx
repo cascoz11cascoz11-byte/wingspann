@@ -39,6 +39,7 @@ function getCountdown(startDate: string, endDate: string): { label: string; colo
 function MapTab({ activities, destination }: { activities: Activity[]; destination: string }) {
   const withLocation = activities.filter((a) => a.location);
   const [selected, setSelected] = useState<Activity | null>(null);
+  const mapLocation = selected?.location ?? destination;
 
   function getDirectionsUrl(location: string) {
     return "https://www.google.com/maps/dir/?api=1&destination=" + encodeURIComponent(location);
@@ -55,11 +56,9 @@ function MapTab({ activities, destination }: { activities: Activity[]; destinati
         <p className="text-3xl">🗺️</p>
         <p className="text-slate-600 font-medium">No locations yet</p>
         <p className="text-sm text-slate-400">Add locations to your activities to see them on the map.</p>
-      </div>
+  </div>
     );
   }
-
-  const mapLocation = selected?.location ?? destination;
 
   return (
     <div className="space-y-4">
@@ -73,8 +72,6 @@ function MapTab({ activities, destination }: { activities: Activity[]; destinati
           src={getMapsEmbedUrl(mapLocation)}
         />
       </div>
-
-      {/* Activity list */}
       <div className="space-y-2">
         <p className="text-xs font-medium text-slate-500">Tap an activity to see it on the map</p>
         {withLocation.map((activity) => (
@@ -113,7 +110,7 @@ export default function TripDetailPage() {
   const [trip, setTrip] = useState<Trip | null | undefined>(undefined);
   const [copied, setCopied] = useState(false);
   const [activeTab, setActiveTab] = useState<"itinerary" | "expenses" | "map">("itinerary");
-  const [deleting, setDeleting] = useState(false);
+  const [deleting, setDeleting] useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
@@ -161,7 +158,7 @@ export default function TripDetailPage() {
   }
 
   const countdown = getCountdown(trip.startDate, trip.endDate);
-  const tabClass = (t: string) => "pb-2 text-sm font-medium transition border-b-2 " + (activeTab === t ? "border-sky-500 text-sky-600" : "border-transparent text-slate-500 hover:text-sky-500");
+  const tabClass = (t: string) => "pb-2 text-sm font-medium transition border-b-2 whitespace-nowrap " + (activeTab === t ? "border-sky-500 text-sky-600" : "border-transparent text-slate-500 hover:text-sky-500");
 
   return (
     <div>
@@ -197,13 +194,13 @@ export default function TripDetailPage() {
 
       <div className="flex gap-6 border-b border-slate-200 mb-6 overflow-x-auto">
         <button type="button" onClick={() => setActiveTab("itinerary")} className={tabClass("itinerary")}>
-          📅 Itinerary
+          Itinerary
         </button>
         <button type="button" onClick={() => setActiveTab("map")} className={tabClass("map")}>
-          🗺️ Map
+          Map
         </button>
         <button type="button" onClick={() => setActiveTab("expenses")} className={tabClass("expenses")}>
-          💸 Expenses
+          Expenses
         </button>
       </div>
 
@@ -220,7 +217,6 @@ export default function TripDetailPage() {
             </div>
             <MemberList tripId={trip.id} members={trip.members} onUpdate={refreshTrip} />
           </section>
-
           <section>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-lg font-semibold text-sky-700">Itinerary</h2>
