@@ -97,7 +97,7 @@ export default function TripDetailPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-        <Link href="/" className="text-sm text-slate-600 hover:text-sky-600">
+      <Link href="/?tab=trips" className="text-sm text-slate-600 hover:text-sky-600">
           Back to trips
         </Link>
         <button

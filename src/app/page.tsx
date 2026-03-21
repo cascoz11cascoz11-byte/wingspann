@@ -215,6 +215,14 @@ function EventsTab() {
 export default function HomePage() {
   const [tab, setTab] = useState<Tab>("notifications");
   const [trips, setTrips] = useState<Trip[]>([]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("tab") as Tab | null;
+    if (t && ["notifications", "trips", "events", "calendar"].includes(t)) {
+      setTab(t);
+    }
+  }, []);
   const [showArrow, setShowArrow] = useState(true);
   const tabsRef = useRef<HTMLDivElement>(null);
 
