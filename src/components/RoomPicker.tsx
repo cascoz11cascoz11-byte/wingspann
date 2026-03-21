@@ -83,7 +83,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
       });
     }
 
-    // 🃏 Deal
+    // 🃏 Deal cards
     cards.forEach((card, i) => {
       const pos = dealtPosition(i);
 
@@ -108,6 +108,19 @@ export function RoomPicker({ members }: RoomPickerProps) {
           rotateY: 180,
           duration: 0.35,
           ease: "power2.out",
+          onStart: () => {
+            // Add medal for first card
+            if (i === 0) {
+              const front = inner.querySelector(".card-front") as HTMLElement;
+              if (front && !front.querySelector(".first-place")) {
+                const medal = document.createElement("div");
+                medal.innerText = "🥇";
+                medal.className =
+                  "first-place absolute -bottom-4 text-lg text-white w-full text-center";
+                front.appendChild(medal);
+              }
+            }
+          },
         }, "<0.05");
       }
     });
@@ -162,7 +175,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
                     {/* FRONT */}
                     <div
                       className={
-                        "absolute inset-0 rounded-2xl flex items-center justify-center text-xs font-bold text-white px-2 text-center shadow-lg " +
+                        "card-front absolute inset-0 rounded-2xl flex flex-col items-center justify-center text-xs font-bold text-white px-2 text-center shadow-lg " +
                         CARD_COLORS[i % CARD_COLORS.length]
                       }
                       style={{
@@ -170,7 +183,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
                         backfaceVisibility: "hidden",
                       }}
                     >
-                      {m.name}
+                      <span>{m.name}</span>
                     </div>
                   </div>
                 </div>
