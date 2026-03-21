@@ -8,7 +8,7 @@ import type { Trip } from "@/types";
 function formatDateRange(start: string, end: string) {
   const s = new Date(start).toLocaleDateString("en-US", { month: "long", day: "numeric" });
   const e = new Date(end).toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
-  return `${s} - ${e}`;
+  return s + " - " + e;
 }
 
 export default function JoinTripPage() {
@@ -49,25 +49,34 @@ export default function JoinTripPage() {
         .map((n) => n.trim())
         .filter(Boolean);
 
-      if (nameList.length === 0) {
+      const membersToAdd = nameList.length === 0
+        ? [{ name: user.user_metadata?.display_name ?? user.email!, email: user.email! }]
+        : nameList.map((name) => ({ name, email: user.email! }));
+
+      for (const member of membersToAdd) {
         await addMember(trip!.id, {
-          name: user.email!,
-          email: user.email!,
+          name: member.name,
+          email: member.email,
           status: "accepted",
         });
-      } else {
-        for (const name of nameList) {
-          await addMember(trip!.id, {
-            name,
-            email: user.email!,
-            status: "accepted",
-          });
-        }
       }
+
+      // Send join notification to trip owner
+      fetch("/api/notify-joined", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          tripId: trip!.id,
+          tripName: trip!.name,
+          memberNames: membersToAdd.map((m) => m.name).join(", "),
+          joinedByUserId: user.id,
+        }),
+      }).catch(() => {});
+
       router.push("/trips/" + trip!.id);
     } else {
       await addMember(trip!.id, {
-        name: user.email!,
+        name: user.user_metadata?.display_name ?? user.email!,
         email: user.email!,
         status: "declined",
       });
@@ -100,7 +109,7 @@ export default function JoinTripPage() {
       <div className="card w-full max-w-lg p-8">
         <div className="text-center">
           <p className="text-4xl">✈️</p>
-          <h1 className="mt-4 font-display text-2xl font-bold text-sky-600">You are invited!</h1>
+          <h1 className="mt-4 font-display text-2xl font-bold text-sky-600">You're invited!</h1>
           <p className="mt-1 text-slate-500">Here are the trip details</p>
         </div>
 
@@ -122,7 +131,7 @@ export default function JoinTripPage() {
                   </span>
                   <div>
                     <p className="font-medium text-slate-800">{activity.title}</p>
-                    {activity.date && <p className="text-xs text-slate-500">{new Date(activity.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}{activity.time ? ` at ${activity.time}` : ""}</p>}
+                    {activity.date && <p className="text-xs text-slate-500">{new Date(activity.date).toLocaleDateString("en-US", { month: "short", day: "numeric" })}{activity.time ? " at " + activity.time : ""}</p>}
                   </div>
                 </li>
               ))}
@@ -135,8 +144,10 @@ export default function JoinTripPage() {
 
         {showNames && (
           <div className="mt-6 rounded-2xl bg-amber-50 border-2 border-amber-200 p-4 space-y-3">
-            <p className="font-medium text-amber-800">Who is coming? 🙌</p>
-            <p className="text-sm text-amber-700">Enter everyone joining — separate names with commas</p>
+            <p className="font-medium text-amber-800">Who's coming? 🙌</p>
+            <p className="text-sm text-amber-700">
+              Enter your name first, then add anyone else joining with you — separate names with commas.
+            </p>
             <input
               type="text"
               className="input"
@@ -145,7 +156,12 @@ export default function JoinTripPage() {
               onChange={(e) => setNames(e.target.value)}
               autoFocus
             />
-            <p className="text-xs text-amber-600">Leave blank to just add yourself</p>
+            <div className="rounded-xl bg-amber-100 p-3 text-xs text-amber-700 space-y-1">
+              <p className="font-medium">💡 Tips:</p>
+              <p>• Put your own name first</p>
+              <p>• Add everyone in your group separated by commas</p>
+              <p>• Leave blank to just add yourself</p>
+            </div>
           </div>
         )}
 
@@ -155,7 +171,7 @@ export default function JoinTripPage() {
             disabled={responding}
             className="btn-primary flex-1"
           >
-            {responding ? "Saving..." : showNames ? "Confirm attendance 🙌" : "Yes, I am in! 🙌"}
+            {responding ? "Saving..." : showNames ? "Confirm attendance 🙌" : "Yes, I'm in! 🙌"}
           </button>
           {!showNames && (
             <button
@@ -163,14 +179,11 @@ export default function JoinTripPage() {
               disabled={responding}
               className="btn-secondary flex-1"
             >
-              {responding ? "Saving..." : "Can not make it 😢"}
+              {responding ? "Saving..." : "Can't make it 😢"}
             </button>
           )}
           {showNames && (
-            <button
-              onClick={() => setShowNames(false)}
-              className="btn-secondary flex-1"
-            >
+            <button onClick={() => setShowNames(false)} className="btn-secondary flex-1">
               Back
             </button>
           )}
