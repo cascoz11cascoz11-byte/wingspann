@@ -80,19 +80,13 @@ export function Header() {
           </button>
 
           {menuOpen && (
-            <div className="absolute right-0 top-12 w-64 rounded-2xl bg-white border border-slate-200 shadow-xl z-50 overflow-hidden">
+            <div className="absolute right-0 top-12 w-56 rounded-2xl bg-white border border-slate-200 shadow-xl z-50 overflow-hidden">
               <div className="p-2 space-y-0.5">
                 <Link href="/" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
-                  ✈️ My Trips
-                </Link>
-                <Link href="/" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
-                  📅 Calendar
+                  🏠 Home
                 </Link>
                 <Link href="/wishlist" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
                   🌟 Wishlist
-                </Link>
-                <Link href="/notifications" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
-                  🔔 Notifications
                 </Link>
               </div>
 
