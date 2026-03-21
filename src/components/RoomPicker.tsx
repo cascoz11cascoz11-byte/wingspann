@@ -1,5 +1,5 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef } from "react";
 import type { FamilyMember } from "@/types";
 
 interface RoomPickerProps {
@@ -25,7 +25,6 @@ function sleep(ms: number) {
 }
 
 interface CardState {
-  id: string;
   member: FamilyMember;
   colorIndex: number;
   x: number;
@@ -46,16 +45,29 @@ export function RoomPicker({ members }: RoomPickerProps) {
   const accepted = members.filter((m) => m.status === "accepted");
   const total = accepted.length;
 
-  function makeCards(memberList: FamilyMember[], faceDown = true): CardState[] {
-    return memberList.map((member, i) => ({
-      id: member.id,
+  function makeStack(order: FamilyMember[]): CardState[] {
+    return order.map((member, i) => ({
       member,
       colorIndex: i % CARD_COLORS.length,
-      x: (Math.random() - 0.5) * 4,
+      x: (Math.random() - 0.5) * 5,
       y: -(total - 1 - i) * 2,
-      rotate: (Math.random() - 0.5) * 4,
+      rotate: (Math.random() - 0.5) * 5,
       zIndex: i,
-      faceDown,
+      faceDown: true,
+      dealt: false,
+      dealOrder: -1,
+    }));
+  }
+
+  function makeScatter(order: FamilyMember[]): CardState[] {
+    return order.map((member, i) => ({
+      member,
+      colorIndex: i % CARD_COLORS.length,
+      x: (Math.random() - 0.5) * 180,
+      y: (Math.random() - 0.5) * 60,
+      rotate: (Math.random() - 0.5) * 35,
+      zIndex: i,
+      faceDown: true,
       dealt: false,
       dealOrder: -1,
     }));
@@ -77,77 +89,33 @@ export function RoomPicker({ members }: RoomPickerProps) {
 
     let order = shuffleArray(accepted);
 
-    // Step 1: Neat stack
-    setCards(makeCards(order));
-    await sleep(500);
+    // Step 1: Stack
+    setCards(makeStack(order));
+    await sleep(600);
 
-    // Step 2: Fan face up
-    setCards(order.map((member, i) => {
-      const angle = (i - (total - 1) / 2) * Math.min(18, 80 / total);
-      const radius = Math.min(70, 28 + total * 7);
-      return {
-        id: member.id,
-        member,
-        colorIndex: i % CARD_COLORS.length,
-        x: Math.sin((angle * Math.PI) / 180) * radius,
-        y: -Math.abs(Math.sin((angle * Math.PI) / 180)) * 10,
-        rotate: angle,
-        zIndex: i,
-        faceDown: false,
-        dealt: false,
-        dealOrder: -1,
-      };
-    }));
+    // Step 2: Scatter
+    order = shuffleArray(order);
+    setCards(makeScatter(order));
     await sleep(750);
 
-    // Step 3: Flip face down
-    setCards((prev) => prev.map((c) => ({ ...c, faceDown: true })));
-    await sleep(500);
-
-    // Step 4: Two piles
-    const half = Math.ceil(total / 2);
-    setCards(order.map((member, i) => ({
-      id: member.id,
-      member,
-      colorIndex: i % CARD_COLORS.length,
-      x: i < half ? -48 : 48,
-      y: -(i < half ? i : i - half) * 2.5,
-      rotate: (i < half ? -4 : 4) + (Math.random() - 0.5) * 2,
-      zIndex: i < half ? i : i - half,
-      faceDown: true,
-      dealt: false,
-      dealOrder: -1,
-    })));
-    await sleep(700);
-
-    // Step 5: Merge to new stack
+    // Step 3: Stack
     order = shuffleArray(order);
-    setCards(makeCards(order));
-    await sleep(700);
+    setCards(makeStack(order));
+    await sleep(750);
 
-    // Step 6: Two piles again
-    setCards(order.map((member, i) => ({
-      id: member.id,
-      member,
-      colorIndex: i % CARD_COLORS.length,
-      x: i < half ? -48 : 48,
-      y: -(i < half ? i : i - half) * 2.5,
-      rotate: (i < half ? -4 : 4) + (Math.random() - 0.5) * 2,
-      zIndex: i < half ? i : i - half,
-      faceDown: true,
-      dealt: false,
-      dealOrder: -1,
-    })));
-    await sleep(700);
-
-    // Step 7: Final stack
+    // Step 4: Scatter again
     order = shuffleArray(order);
-    setCards(makeCards(order));
-    await sleep(700);
+    setCards(makeScatter(order));
+    await sleep(750);
 
-    // Step 8: Deal one by one to final positions
+    // Step 5: Final stack
+    order = shuffleArray(order);
+    setCards(makeStack(order));
+    await sleep(750);
+
+    // Step 6: Deal one by one
     for (let i = 0; i < total; i++) {
-      await sleep(370);
+      await sleep(380);
       const pos = dealtPosition(i);
       const topIdx = total - 1 - i;
       setCards((prev) => prev.map((c, ci) =>
@@ -192,7 +160,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
               <>
                 <div
                   className="relative flex items-center justify-center overflow-visible"
-                  style={{ height: cardAreaHeight, transition: "height 0.5s ease" }}
+                  style={{ height: cardAreaHeight, transition: "height 0.6s ease" }}
                 >
                   {phase === "idle" && (
                     <div className="flex gap-3">
@@ -204,12 +172,12 @@ export function RoomPicker({ members }: RoomPickerProps) {
 
                   {cards.map((card, i) => (
                     <div
-                      key={card.id + "-" + i}
+                      key={card.member.id + "-" + i}
                       className={"absolute w-20 h-28 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-1 select-none text-xs font-bold text-center px-2 leading-tight " + (card.faceDown ? "bg-slate-700" : CARD_COLORS[card.colorIndex] + " text-white")}
                       style={{
                         transform: `translate(${card.x}px, ${card.y}px) rotate(${card.rotate}deg)`,
                         zIndex: card.zIndex,
-                        transition: "transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.35s ease",
+                        transition: "transform 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.3s ease",
                       }}
                     >
                       {card.faceDown ? (
@@ -218,7 +186,11 @@ export function RoomPicker({ members }: RoomPickerProps) {
                         <>
                           {card.dealOrder === 0 && <span className="text-lg">🥇</span>}
                           <span>{card.member.name}</span>
-                          {card.dealt && <span className="text-white/70 text-[10px]">{card.dealOrder === 0 ? "picks first" : "picks #" + (card.dealOrder + 1)}</span>}
+                          {card.dealt && (
+                            <span className="text-white/70 text-[10px]">
+                              {card.dealOrder === 0 ? "picks first" : "picks #" + (card.dealOrder + 1)}
+                            </span>
+                          )}
                         </>
                       )}
                     </div>
