@@ -44,13 +44,17 @@ function formatDateLabel(dateStr: string): string {
   return new Date(y, m - 1, d).toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
 }
 
+function isOutsideTripDates(dateStr: string, start: string, end: string): boolean {
+  if (!dateStr) return false;
+  return dateStr < start || dateStr > end;
+}
+
 type Tab = "new" | "wishlist";
 
 export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId, onAdded }: AddActivityProps) {
   const [open, setOpen] = useState(false);
   const [tab, setTab] = useState<Tab>("new");
 
-  // New activity form
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [date, setDate] = useState("");
@@ -68,8 +72,8 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
   const [driveTime, setDriveTime] = useState("");
   const [calculatingDrive, setCalculatingDrive] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [dateWarning, setDateWarning] = useState("");
 
-  // Wishlist tab
   const [wishlist, setWishlist] = useState<WishlistItem[]>([]);
   const [wishlistLoading, setWishlistLoading] = useState(false);
   const [selectedWishlistItem, setSelectedWishlistItem] = useState<WishlistItem | null>(null);
@@ -77,6 +81,21 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
   const [addingWishlist, setAddingWishlist] = useState(false);
 
   const tripDates = getTripDates(tripStartDate, tripEndDate);
+
+  // Check date warning whenever date changes
+  useEffect(() => {
+    if (!date) { setDateWarning(""); return; }
+    if (isOutsideTripDates(date, tripStartDate, tripEndDate)) {
+      setDateWarning("⚠️ This date is outside the trip (" + formatDateLabel(tripStartDate) + " – " + formatDateLabel(tripEndDate) + ")");
+    } else {
+      setDateWarning("");
+    }
+  }, [date, tripStartDate, tripEndDate]);
+
+  // Check checkout date warning
+  const checkOutWarning = checkOutDate && isOutsideTripDates(checkOutDate, tripStartDate, tripEndDate)
+    ? "⚠️ Check-out is outside the trip dates"
+    : "";
 
   useEffect(() => {
     if (travelSubtype !== "drive" || !departureLocation || !arrivalLocation) return;
@@ -124,6 +143,7 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
     setDepartureLocation(""); setArrivalLocation(""); setArrivalTime("");
     setFlightNumber(""); setDriveTime(""); setSaving(false);
     setSelectedWishlistItem(null); setWishlistDate("");
+    setDateWarning("");
   }
 
   function close() {
@@ -197,7 +217,6 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
               <button type="button" onClick={close} className="text-slate-400 hover:text-slate-600 text-xl leading-none">✕</button>
             </div>
 
-            {/* Tabs */}
             <div className="flex gap-4 border-b border-slate-200">
               <button type="button" onClick={() => setTab("new")} className={"pb-2 text-sm font-medium transition border-b-2 " + (tab === "new" ? "border-sky-500 text-sky-600" : "border-transparent text-slate-500 hover:text-sky-500")}>
                 ✏️ New activity
@@ -207,7 +226,6 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
               </button>
             </div>
 
-            {/* New activity tab */}
             {tab === "new" && (
               <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
@@ -281,10 +299,12 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
                       <div>
                         <label className="block text-sm font-medium text-slate-700">Check in</label>
                         <input type="date" className="input mt-1" value={date} onChange={(e) => setDate(e.target.value)} required />
+                        {dateWarning && <p className="text-xs text-amber-600 mt-1">{dateWarning}</p>}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700">Check out</label>
                         <input type="date" className="input mt-1" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} required />
+                        {checkOutWarning && <p className="text-xs text-amber-600 mt-1">{checkOutWarning}</p>}
                       </div>
                     </div>
                     <div>
@@ -302,7 +322,8 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-slate-700">Date</label>
-                      <input type="date" className="input mt-1" value={date} onChange={(e) => setDate(e.target.value)} required />
+                      <input type="date" className="input mt-1" value={date} onChange={(e) => setDate(e.target.value)} required min={tripStartDate} max={tripEndDate} />
+                      {dateWarning && <p className="text-xs text-amber-600 mt-1">{dateWarning}</p>}
                     </div>
                     <div className="grid grid-cols-2 gap-4">
                       <div>
@@ -324,7 +345,8 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
                 {type === "travel" && travelSubtype !== "other" && (
                   <div>
                     <label className="block text-sm font-medium text-slate-700">Date</label>
-                    <input type="date" className="input mt-1" value={date} onChange={(e) => setDate(e.target.value)} required />
+                    <input type="date" className="input mt-1" value={date} onChange={(e) => setDate(e.target.value)} required min={tripStartDate} max={tripEndDate} />
+                    {dateWarning && <p className="text-xs text-amber-600 mt-1">{dateWarning}</p>}
                   </div>
                 )}
 
@@ -348,7 +370,6 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
               </form>
             )}
 
-            {/* Wishlist/Board tab */}
             {tab === "wishlist" && (
               <div className="space-y-4">
                 {wishlistLoading ? (
