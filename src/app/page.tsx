@@ -6,6 +6,7 @@ import { HomeCalendar } from "@/components/HomeCalendar";
 import { StandaloneEventCreator } from "@/components/StandaloneEventCreator";
 import Link from "next/link";
 import { getTrips, getNotifications, markNotificationsRead, getStandaloneEvents, removeStandaloneEvent } from "@/lib/store";
+import { createClient } from "@/lib/supabase";
 import type { Trip } from "@/types";
 import type { AppNotification, StandaloneEvent } from "@/lib/store";
 
@@ -122,20 +123,50 @@ function EventsTab() {
   const [events, setEvents] = useState<StandaloneEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [copied, setCopied] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    async function load() {
-      const data = await getStandaloneEvents();
-      setEvents(data);
-      setLoading(false);
-    }
     load();
   }, []);
+
+  async function load() {
+    const data = await getStandaloneEvents();
+    setEvents(data);
+    setLoading(false);
+  }
 
   async function handleRemove(id: string) {
     if (!confirm("Delete this event?")) return;
     await removeStandaloneEvent(id);
     setEvents((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  function startEdit(event: StandaloneEvent) {
+    setEditingId(event.id);
+    setEditTitle(event.title);
+    setEditDate(event.date);
+    setEditTime(event.time ?? "");
+    setEditLocation(event.location ?? "");
+  }
+
+  async function handleSaveEdit(id: string) {
+    setSaving(true);
+    const supabase = createClient();
+    await supabase.from("standalone_events").update({
+      title: editTitle,
+      date: editDate,
+      time: editTime || null,
+      location: editLocation || null,
+    }).eq("id", id);
+    await load();
+    setEditingId(null);
+    setSaving(false);
   }
 
   function copyInviteLink(inviteCode: string, id: string) {
@@ -160,51 +191,111 @@ function EventsTab() {
         const accepted = event.members.filter((m) => m.status === "accepted").length;
         const pending = event.members.filter((m) => m.status === "pending").length;
         const declined = event.members.filter((m) => m.status === "declined").length;
+        const isExpanded = expandedId === event.id;
+        const isEditing = editingId === event.id;
+
         return (
-          <div key={event.id} className="card p-4 space-y-3">
-            <div className="flex items-start justify-between gap-2">
+          <div key={event.id} className="card overflow-hidden">
+            {/* Header — always visible, tap to expand */}
+            <button
+              type="button"
+              onClick={() => setExpandedId(isExpanded ? null : event.id)}
+              className="w-full p-4 text-left flex items-start justify-between gap-2"
+            >
               <div className="flex-1 min-w-0">
                 <p className="font-medium text-slate-800">{event.title}</p>
                 <p className="text-xs text-slate-500 mt-0.5">{formatEventDate(event.date, event.time)}</p>
                 {event.location && <p className="text-xs text-slate-500">📍 {event.location}</p>}
               </div>
-              <button
-                type="button"
-                onClick={() => handleRemove(event.id)}
-                className="text-xs text-red-300 hover:text-red-500 transition shrink-0"
-              >
-                Delete
-              </button>
-            </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex gap-2 text-xs text-slate-400">
+                  {accepted > 0 && <span className="text-emerald-600">{accepted} ✓</span>}
+                  {pending > 0 && <span>{pending} ?</span>}
+                  {declined > 0 && <span className="text-red-400">{declined} ✗</span>}
+                </div>
+                <span className="text-slate-400 text-xs">{isExpanded ? "▲" : "▼"}</span>
+              </div>
+            </button>
 
-            {event.members.length > 0 && (
-              <div className="flex flex-wrap gap-1">
-                {event.members.map((m) => (
-                  <span key={m.id} className={"rounded-full px-2 py-0.5 text-xs font-medium " +
-                    (m.status === "accepted" ? "bg-emerald-100 text-emerald-700" :
-                     m.status === "declined" ? "bg-red-100 text-red-600" :
-                     "bg-slate-100 text-slate-500")}>
-                    {m.name || m.email}
-                  </span>
-                ))}
+            {/* Expanded content */}
+            {isExpanded && (
+              <div className="border-t border-slate-100 p-4 space-y-4">
+                {isEditing ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Title</label>
+                      <input type="text" className="input" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
+                      <input type="date" className="input" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Time</label>
+                      <input type="time" className="input" value={editTime} onChange={(e) => setEditTime(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Location</label>
+                      <input type="text" className="input" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} placeholder="Optional" />
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => handleSaveEdit(event.id)} disabled={saving} className="btn-primary text-sm">
+                        {saving ? "Saving..." : "Save"}
+                      </button>
+                      <button type="button" onClick={() => setEditingId(null)} className="btn-secondary text-sm">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {event.members.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {event.members.map((m) => (
+                          <span key={m.id} className={"rounded-full px-2 py-0.5 text-xs font-medium " +
+                            (m.status === "accepted" ? "bg-emerald-100 text-emerald-700" :
+                             m.status === "declined" ? "bg-red-100 text-red-600" :
+                             "bg-slate-100 text-slate-500")}>
+                            {m.name || m.email}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex gap-3 text-xs text-slate-500">
+                        {accepted > 0 && <span className="text-emerald-600">{accepted} going</span>}
+                        {pending > 0 && <span>{pending} pending</span>}
+                        {declined > 0 && <span className="text-red-400">{declined} declined</span>}
+                        {event.members.length === 0 && <span>No invites yet</span>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => copyInviteLink(event.inviteCode, event.id)}
+                        className="text-xs text-sky-600 hover:underline shrink-0"
+                      >
+                        {copied === event.id ? "Copied!" : "Copy invite"}
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(event)}
+                        className="text-xs text-sky-600 hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(event.id)}
+                        className="text-xs text-red-400 hover:text-red-600"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
               </div>
             )}
-
-            <div className="flex items-center justify-between gap-2">
-              <div className="flex gap-3 text-xs text-slate-500">
-                {accepted > 0 && <span className="text-emerald-600">{accepted} going</span>}
-                {pending > 0 && <span>{pending} pending</span>}
-                {declined > 0 && <span className="text-red-400">{declined} declined</span>}
-                {event.members.length === 0 && <span>No invites yet</span>}
-              </div>
-              <button
-                type="button"
-                onClick={() => copyInviteLink(event.inviteCode, event.id)}
-                className="text-xs text-sky-600 hover:underline shrink-0"
-              >
-                {copied === event.id ? "Copied!" : "Copy invite"}
-              </button>
-            </div>
           </div>
         );
       })}
@@ -215,6 +306,8 @@ function EventsTab() {
 export default function HomePage() {
   const [tab, setTab] = useState<Tab>("notifications");
   const [trips, setTrips] = useState<Trip[]>([]);
+  const [showArrow, setShowArrow] = useState(true);
+  const tabsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
@@ -223,8 +316,6 @@ export default function HomePage() {
       setTab(t);
     }
   }, []);
-  const [showArrow, setShowArrow] = useState(true);
-  const tabsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     getTrips().then(setTrips);
@@ -246,7 +337,6 @@ export default function HomePage() {
 
   return (
     <div>
-      {/* Hero */}
       <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
         <p className="font-display text-xl font-semibold text-amber-600">
           Group adventures, perfectly planned ✈️
@@ -260,7 +350,405 @@ export default function HomePage() {
         </div>
       </div>
 
-      {/* Tabs */}
+      <div className="relative mb-6">
+        <div
+          ref={tabsRef}
+          onScroll={handleTabScroll}
+          className="flex gap-6 border-b border-slate-200 overflow-x-auto"
+          style={{ scrollbarWidth: "none", msOverflowStyle: "none" }}
+        >
+          <button type="button" onClick={() => setTab("notifications")} className={tab === "notifications" ? activeTab : inactiveTab}>
+            🔔 Notifications
+          </button>
+          <button type="button" onClick={() => setTab("trips")} className={tab === "trips" ? activeTab : inactiveTab}>
+            ✈️ Trips
+          </button>
+          <button type="button" onClick={() => setTab("events")} className={tab === "events" ? activeTab : inactiveTab}>
+            🎉 Events
+          </button>
+          <button type="button" onClick={() => setTab("calendar")} className={tab === "calendar" ? activeTab : inactiveTab}>
+            📅 Calendar
+          </button>
+          <Link href="/wishlist" className={inactiveTab}>
+            🌟 Wishlist
+          </Link>
+        </div>
+        {showArrow && (
+          <button
+            type="button"
+            onClick={handleArrowClick}
+            className="absolute right-0 top-0 bottom-1 flex items-center justify-center w-8 bg-gradient-to-l from-white via-white to-transparent text-slate-400 hover:text-sky-500 transition"
+          >
+            ›
+          </button>
+        )}
+      </div>
+
+      {tab === "notifications" && <NotificationsTab />}
+      {tab === "trips" && <TripList />}
+      {tab === "events" && <EventsTab />}
+      {tab === "calendar" && <HomeCalendar trips={trips} />}
+    </div>
+  );
+}
+```
+
+Save, then:
+```
+git add .
+git commit -m "expandable events with edit and delete"
+git push"use client";
+import { useState, useEffect, useRef } from "react";
+import { TripList } from "@/components/TripList";
+import { HomeActivityFinder } from "@/components/HomeActivityFinder";
+import { HomeCalendar } from "@/components/HomeCalendar";
+import { StandaloneEventCreator } from "@/components/StandaloneEventCreator";
+import Link from "next/link";
+import { getTrips, getNotifications, markNotificationsRead, getStandaloneEvents, removeStandaloneEvent } from "@/lib/store";
+import { createClient } from "@/lib/supabase";
+import type { Trip } from "@/types";
+import type { AppNotification, StandaloneEvent } from "@/lib/store";
+
+type Tab = "notifications" | "trips" | "calendar" | "events";
+
+const TYPE_CONFIG: Record<string, { emoji: string; color: string }> = {
+  activity_added: { emoji: "🎯", color: "bg-sky-100 text-sky-700" },
+  flight_status:  { emoji: "✈️", color: "bg-amber-100 text-amber-700" },
+  member_joined:  { emoji: "👋", color: "bg-emerald-100 text-emerald-700" },
+  event_rsvp:     { emoji: "🎉", color: "bg-violet-100 text-violet-700" },
+};
+
+function formatTime(dateStr: string): string {
+  const date = new Date(dateStr);
+  const now = new Date();
+  const diff = now.getTime() - date.getTime();
+  const mins = Math.floor(diff / 60000);
+  const hours = Math.floor(diff / 3600000);
+  const days = Math.floor(diff / 86400000);
+  if (mins < 1) return "Just now";
+  if (mins < 60) return mins + "m ago";
+  if (hours < 24) return hours + "h ago";
+  if (days < 7) return days + "d ago";
+  return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
+function formatEventDate(dateStr: string, time?: string): string {
+  const [y, m, d] = dateStr.split("-").map(Number);
+  const date = new Date(y, m - 1, d);
+  const label = date.toLocaleDateString("en-US", { weekday: "short", month: "short", day: "numeric" });
+  if (!time) return label;
+  const [h, min] = time.split(":").map(Number);
+  const ampm = h >= 12 ? "PM" : "AM";
+  const hour = h % 12 || 12;
+  return label + " at " + hour + ":" + min.toString().padStart(2, "0") + " " + ampm;
+}
+
+function NotificationsTab() {
+  const [notifications, setNotifications] = useState<AppNotification[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showOld, setShowOld] = useState(false);
+  const [initialUnreadIds, setInitialUnreadIds] = useState<string[]>([]);
+
+  useEffect(() => {
+    async function load() {
+      const data = await getNotifications();
+      setNotifications(data);
+      setInitialUnreadIds(data.filter((n) => !n.read).map((n) => n.id));
+      setLoading(false);
+      setTimeout(() => markNotificationsRead(), 2000);
+    }
+    load();
+  }, []);
+
+  if (loading) return <p className="text-slate-500 text-center py-12">Loading...</p>;
+
+  const newNotifications = notifications.filter((n) => initialUnreadIds.includes(n.id));
+  const oldNotifications = notifications.filter((n) => !initialUnreadIds.includes(n.id));
+
+  function NotifCard({ n }: { n: AppNotification }) {
+    const config = TYPE_CONFIG[n.type] ?? { emoji: "🔔", color: "bg-slate-100 text-slate-600" };
+    const isNew = initialUnreadIds.includes(n.id);
+    const card = (
+      <div className={"card p-4 flex items-start gap-3 " + (isNew ? "border-sky-200 bg-sky-50/30" : "opacity-60")}>
+        <div className={"rounded-full w-9 h-9 flex items-center justify-center shrink-0 text-base " + config.color}>
+          {config.emoji}
+        </div>
+        <div className="flex-1 min-w-0">
+          <p className={"text-sm text-slate-800 " + (isNew ? "font-semibold" : "font-medium")}>{n.title}</p>
+          <p className="text-xs text-slate-500 mt-0.5">{n.body}</p>
+          <p className="text-xs text-slate-400 mt-1">{formatTime(n.createdAt)}</p>
+        </div>
+        {isNew && <div className="w-2 h-2 rounded-full bg-sky-500 shrink-0 mt-1" />}
+      </div>
+    );
+    return n.link ? <Link href={n.link}>{card}</Link> : <div>{card}</div>;
+  }
+
+  if (notifications.length === 0) return (
+    <div className="card border-dashed border-sky-200 p-8 text-center space-y-2">
+      <p className="text-3xl">🔔</p>
+      <p className="text-slate-600 font-medium">No notifications yet</p>
+      <p className="text-sm text-slate-400">We'll let you know when something happens on your trips!</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      {newNotifications.length === 0 ? (
+        <div className="card border-dashed border-sky-200 p-6 text-center space-y-1">
+          <p className="text-slate-600 font-medium">You're all caught up! 🎉</p>
+          <p className="text-sm text-slate-400">No new notifications.</p>
+        </div>
+      ) : (
+        newNotifications.map((n) => <NotifCard key={n.id} n={n} />)
+      )}
+      {oldNotifications.length > 0 && (
+        <>
+          <button
+            type="button"
+            onClick={() => setShowOld((p) => !p)}
+            className="w-full rounded-xl border-2 border-dashed border-slate-200 py-2.5 text-sm text-slate-400 hover:border-sky-200 hover:text-sky-500 transition"
+          >
+            {showOld ? "Hide older notifications" : "Show " + oldNotifications.length + " older notification" + (oldNotifications.length === 1 ? "" : "s")}
+          </button>
+          {showOld && oldNotifications.map((n) => <NotifCard key={n.id} n={n} />)}
+        </>
+      )}
+    </div>
+  );
+}
+
+function EventsTab() {
+  const [events, setEvents] = useState<StandaloneEvent[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [copied, setCopied] = useState<string | null>(null);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editTitle, setEditTitle] = useState("");
+  const [editDate, setEditDate] = useState("");
+  const [editTime, setEditTime] = useState("");
+  const [editLocation, setEditLocation] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    load();
+  }, []);
+
+  async function load() {
+    const data = await getStandaloneEvents();
+    setEvents(data);
+    setLoading(false);
+  }
+
+  async function handleRemove(id: string) {
+    if (!confirm("Delete this event?")) return;
+    await removeStandaloneEvent(id);
+    setEvents((prev) => prev.filter((e) => e.id !== id));
+  }
+
+  function startEdit(event: StandaloneEvent) {
+    setEditingId(event.id);
+    setEditTitle(event.title);
+    setEditDate(event.date);
+    setEditTime(event.time ?? "");
+    setEditLocation(event.location ?? "");
+  }
+
+  async function handleSaveEdit(id: string) {
+    setSaving(true);
+    const supabase = createClient();
+    await supabase.from("standalone_events").update({
+      title: editTitle,
+      date: editDate,
+      time: editTime || null,
+      location: editLocation || null,
+    }).eq("id", id);
+    await load();
+    setEditingId(null);
+    setSaving(false);
+  }
+
+  function copyInviteLink(inviteCode: string, id: string) {
+    navigator.clipboard.writeText(window.location.origin + "/events/" + inviteCode);
+    setCopied(id);
+    setTimeout(() => setCopied(null), 2000);
+  }
+
+  if (loading) return <p className="text-slate-500 text-center py-12">Loading...</p>;
+
+  if (events.length === 0) return (
+    <div className="card border-dashed border-sky-200 p-8 text-center space-y-2">
+      <p className="text-3xl">🎉</p>
+      <p className="text-slate-600 font-medium">No events yet</p>
+      <p className="text-sm text-slate-400">Create a standalone event to invite people without a full trip.</p>
+    </div>
+  );
+
+  return (
+    <div className="space-y-3">
+      {events.map((event) => {
+        const accepted = event.members.filter((m) => m.status === "accepted").length;
+        const pending = event.members.filter((m) => m.status === "pending").length;
+        const declined = event.members.filter((m) => m.status === "declined").length;
+        const isExpanded = expandedId === event.id;
+        const isEditing = editingId === event.id;
+
+        return (
+          <div key={event.id} className="card overflow-hidden">
+            {/* Header — always visible, tap to expand */}
+            <button
+              type="button"
+              onClick={() => setExpandedId(isExpanded ? null : event.id)}
+              className="w-full p-4 text-left flex items-start justify-between gap-2"
+            >
+              <div className="flex-1 min-w-0">
+                <p className="font-medium text-slate-800">{event.title}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{formatEventDate(event.date, event.time)}</p>
+                {event.location && <p className="text-xs text-slate-500">📍 {event.location}</p>}
+              </div>
+              <div className="flex items-center gap-2 shrink-0">
+                <div className="flex gap-2 text-xs text-slate-400">
+                  {accepted > 0 && <span className="text-emerald-600">{accepted} ✓</span>}
+                  {pending > 0 && <span>{pending} ?</span>}
+                  {declined > 0 && <span className="text-red-400">{declined} ✗</span>}
+                </div>
+                <span className="text-slate-400 text-xs">{isExpanded ? "▲" : "▼"}</span>
+              </div>
+            </button>
+
+            {/* Expanded content */}
+            {isExpanded && (
+              <div className="border-t border-slate-100 p-4 space-y-4">
+                {isEditing ? (
+                  <div className="space-y-3">
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Title</label>
+                      <input type="text" className="input" value={editTitle} onChange={(e) => setEditTitle(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Date</label>
+                      <input type="date" className="input" value={editDate} onChange={(e) => setEditDate(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Time</label>
+                      <input type="time" className="input" value={editTime} onChange={(e) => setEditTime(e.target.value)} />
+                    </div>
+                    <div>
+                      <label className="block text-xs font-medium text-slate-600 mb-1">Location</label>
+                      <input type="text" className="input" value={editLocation} onChange={(e) => setEditLocation(e.target.value)} placeholder="Optional" />
+                    </div>
+                    <div className="flex gap-2">
+                      <button type="button" onClick={() => handleSaveEdit(event.id)} disabled={saving} className="btn-primary text-sm">
+                        {saving ? "Saving..." : "Save"}
+                      </button>
+                      <button type="button" onClick={() => setEditingId(null)} className="btn-secondary text-sm">Cancel</button>
+                    </div>
+                  </div>
+                ) : (
+                  <>
+                    {event.members.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {event.members.map((m) => (
+                          <span key={m.id} className={"rounded-full px-2 py-0.5 text-xs font-medium " +
+                            (m.status === "accepted" ? "bg-emerald-100 text-emerald-700" :
+                             m.status === "declined" ? "bg-red-100 text-red-600" :
+                             "bg-slate-100 text-slate-500")}>
+                            {m.name || m.email}
+                          </span>
+                        ))}
+                      </div>
+                    )}
+
+                    <div className="flex items-center justify-between gap-2 flex-wrap">
+                      <div className="flex gap-3 text-xs text-slate-500">
+                        {accepted > 0 && <span className="text-emerald-600">{accepted} going</span>}
+                        {pending > 0 && <span>{pending} pending</span>}
+                        {declined > 0 && <span className="text-red-400">{declined} declined</span>}
+                        {event.members.length === 0 && <span>No invites yet</span>}
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => copyInviteLink(event.inviteCode, event.id)}
+                        className="text-xs text-sky-600 hover:underline shrink-0"
+                      >
+                        {copied === event.id ? "Copied!" : "Copy invite"}
+                      </button>
+                    </div>
+
+                    <div className="flex gap-2 pt-1 border-t border-slate-100">
+                      <button
+                        type="button"
+                        onClick={() => startEdit(event)}
+                        className="text-xs text-sky-600 hover:underline"
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => handleRemove(event.id)}
+                        className="text-xs text-red-400 hover:text-red-600"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </>
+                )}
+              </div>
+            )}
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+export default function HomePage() {
+  const [tab, setTab] = useState<Tab>("notifications");
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [showArrow, setShowArrow] = useState(true);
+  const tabsRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const t = params.get("tab") as Tab | null;
+    if (t && ["notifications", "trips", "events", "calendar"].includes(t)) {
+      setTab(t);
+    }
+  }, []);
+
+  useEffect(() => {
+    getTrips().then(setTrips);
+  }, []);
+
+  function handleTabScroll() {
+    if (!tabsRef.current) return;
+    const { scrollLeft, scrollWidth, clientWidth } = tabsRef.current;
+    setShowArrow(scrollLeft + clientWidth < scrollWidth - 10);
+  }
+
+  function handleArrowClick() {
+    if (!tabsRef.current) return;
+    tabsRef.current.scrollBy({ left: 120, behavior: "smooth" });
+  }
+
+  const activeTab = "border-b-2 border-sky-500 text-sky-600 font-semibold pb-2 whitespace-nowrap shrink-0";
+  const inactiveTab = "text-slate-500 hover:text-sky-500 pb-2 transition whitespace-nowrap shrink-0";
+
+  return (
+    <div>
+      <div className="mb-4 flex items-center justify-between gap-3 flex-wrap">
+        <p className="font-display text-xl font-semibold text-amber-600">
+          Group adventures, perfectly planned ✈️
+        </p>
+        <div className="flex gap-2 flex-wrap">
+          <HomeActivityFinder trips={trips} />
+          <StandaloneEventCreator />
+          <Link href="/trips/new" className="btn-primary text-sm whitespace-nowrap">
+            + New trip
+          </Link>
+        </div>
+      </div>
+
       <div className="relative mb-6">
         <div
           ref={tabsRef}
