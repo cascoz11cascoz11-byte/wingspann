@@ -2,10 +2,14 @@
 import { useEffect, useState } from "react";
 
 export function SplashScreen() {
-  const [visible, setVisible] = useState(true);
+  const [visible, setVisible] = useState(false);
   const [fading, setFading] = useState(false);
 
   useEffect(() => {
+    const already = sessionStorage.getItem("splashShown");
+    if (already) return;
+    sessionStorage.setItem("splashShown", "1");
+    setVisible(true);
     const fadeTimer = setTimeout(() => setFading(true), 1800);
     const hideTimer = setTimeout(() => setVisible(false), 2300);
     return () => { clearTimeout(fadeTimer); clearTimeout(hideTimer); };
@@ -23,10 +27,7 @@ export function SplashScreen() {
         <div className="relative w-48 h-6 overflow-hidden">
           <div
             className="absolute text-2xl"
-            style={{
-              animation: "flyAcross 1.6s ease-in-out forwards",
-              top: 0,
-            }}
+            style={{ animation: "flyAcross 1.6s ease-in-out forwards", top: 0 }}
           >
             ✈️
           </div>
