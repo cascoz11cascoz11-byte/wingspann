@@ -2,15 +2,26 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const ONESIGNAL_APP_ID = "68f645ed-1d8f-4e5c-97bb-1548062edcd8";
-const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY!;
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
 
 export async function POST(req: Request) {
   try {
+    const supabase = getSupabase();
+    if (!supabase) {
+      return NextResponse.json({ error: "Server not configured" }, { status: 500 });
+    }
+
+    const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
+    if (!ONESIGNAL_API_KEY) {
+      return NextResponse.json({ error: "OneSignal not configured" }, { status: 500 });
+    }
+
     const { tripId, activityTitle, addedByUserId } = await req.json();
     if (!tripId || !activityTitle) {
       return NextResponse.json({ error: "Missing fields" }, { status: 400 });
@@ -55,7 +66,7 @@ export async function POST(req: Request) {
     const { data: subs } = await supabase
       .from("push_subscriptions")
       .select("player_id")
-      .in("useid", uniqueUserIds);
+      .in("user_id", uniqueUserIds);
 
     if (subs && subs.length > 0) {
       const playerIds = subs.map((s: any) => s.player_id);

@@ -2,12 +2,13 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
 const ONESIGNAL_APP_ID = "68f645ed-1d8f-4e5c-97bb-1548062edcd8";
-const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY!;
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
+function getSupabase() {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return null;
+  return createClient(url, key);
+}
 
 async function checkFlight(flightNumber: string, date: string) {
   try {
@@ -30,6 +31,16 @@ export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
   if (authHeader !== "Bearer " + process.env.CRON_SECRET) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  const supabase = getSupabase();
+  if (!supabase) {
+    return NextResponse.json({ error: "Server not configured" }, { status: 500 });
+  }
+
+  const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
+  if (!ONESIGNAL_API_KEY) {
+    return NextResponse.json({ error: "OneSignal not configured" }, { status: 500 });
   }
 
   const today = new Date().toISOString().split("T")[0];
@@ -58,7 +69,7 @@ export async function GET(req: Request) {
     const userId = flight.trips?.user_id;
     if (!userId) continue;
 
-    const title = status === "Cancelled" ? "✈️ Flight Cancelled" : "light Delayed";
+    const title = status === "Cancelled" ? "✈️ Flight Cancelled" : "✈️ Flight Delayed";
     const body = "Flight " + flight.flight_number + " on " + flight.date + " is " + status.toLowerCase() + ".";
 
     // Save to notifications table

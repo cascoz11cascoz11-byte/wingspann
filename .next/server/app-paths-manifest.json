@@ -1,5 +1,21 @@
 {
-  "/trips/[id]/page": "app/trips/[id]/page.js",
+  "/_not-found/page": "app/_not-found/page.js",
+  "/api/flight-status/route": "app/api/flight-status/route.js",
+  "/api/cron/flight-check/route": "app/api/cron/flight-check/route.js",
+  "/api/drive-time/route": "app/api/drive-time/route.js",
+  "/api/notify-activity/route": "app/api/notify-activity/route.js",
   "/api/weather/route": "app/api/weather/route.js",
-  "/api/find-activities/route": "app/api/find-activities/route.js"
+  "/boards/[id]/page": "app/boards/[id]/page.js",
+  "/boards/join/[code]/page": "app/boards/join/[code]/page.js",
+  "/events/[code]/page": "app/events/[code]/page.js",
+  "/api/find-activities/route": "app/api/find-activities/route.js",
+  "/login/page": "app/login/page.js",
+  "/notifications/page": "app/notifications/page.js",
+  "/boards/page": "app/boards/page.js",
+  "/join/[code]/page": "app/join/[code]/page.js",
+  "/signup/page": "app/signup/page.js",
+  "/page": "app/page.js",
+  "/trips/[id]/page": "app/trips/[id]/page.js",
+  "/wishlist/page": "app/wishlist/page.js",
+  "/trips/new/page": "app/trips/new/page.js"
 }
