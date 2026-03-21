@@ -35,7 +35,7 @@ export async function POST(req: Request) {
 
     const { data: subs } = await supabase.from("push_subscriptions").select("player_id").eq("user_id", ownerId);
     if (subs && subs.length > 0) {
-      await fetch("https://onesignal.com/api/v1/notifications", {
+      const osRes = await fetch("https://onesignal.com/api/v1/notifications", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
