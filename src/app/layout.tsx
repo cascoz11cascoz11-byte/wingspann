@@ -5,6 +5,7 @@ import { Header } from "@/components/Header";
 import { PushSubscriber } from "@/components/PushSubscriber";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import Script from "next/script";
+import { SplashScreen } from "@/components/SplashScreen";
 
 const outfit = Outfit({
   subsets: ["latin"],
@@ -72,6 +73,7 @@ export default function RootLayout({
             });
           });
         `}</Script>
+       <SplashScreen />
         <PullToRefresh />
         <Header />
         <PushSubscriber />
