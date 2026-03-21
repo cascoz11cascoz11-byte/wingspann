@@ -51,7 +51,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
       },
     });
 
-    // 🃏 Initial stack (tight + subtle depth)
+    // 🃏 Initial stack
     tl.to(cards, {
       x: () => gsap.utils.random(-4, 4),
       y: (_, i) => -(total - i) * 2,
@@ -60,67 +60,55 @@ export function RoomPicker({ members }: RoomPickerProps) {
       stagger: { each: 0.03, from: "end" },
     });
 
-    // 🔀 Shuffle passes (controlled chaos + speed ramp)
+    // 🔀 Shuffle passes
     for (let i = 0; i < 4; i++) {
       const speed = 0.5 - i * 0.08;
 
-      // scatter (chaos, but soft)
       tl.to(cards, {
         x: () => gsap.utils.random(-140, 140),
         y: () => gsap.utils.random(-60, 40),
         rotation: () => gsap.utils.random(-25, 25),
         scale: 0.96,
         duration: speed,
-        ease: "power2.out",
         stagger: 0.015,
       });
 
-      // regroup (tight + satisfying)
       tl.to(cards, {
         x: () => gsap.utils.random(-6, 6),
         y: (_, i) => -(total - i) * 2,
         rotation: () => gsap.utils.random(-6, 6),
         scale: 1,
         duration: speed * 0.9,
-        ease: "power3.out",
         stagger: { each: 0.03, from: "end" },
       });
     }
 
-    // 🃏 Deal cards (arc motion + snap)
+    // 🃏 Deal
     cards.forEach((card, i) => {
       const pos = dealtPosition(i);
 
-      // arc lift
-      tl.to(card, {
-        y: pos.y - 40,
-        duration: 0.18,
-        ease: "power2.out",
-      }, "+=0.04");
-
-      // drop into place
-      tl.to(card, {
-        x: pos.x,
-        y: pos.y,
-        rotation: pos.rotation,
-        duration: 0.32,
-        ease: "power4.out",
-      }, "<");
-
-      // flip + reveal
-      tl.to(card, {
-        rotateY: 180,
-        duration: 0.25,
-        ease: "power2.out",
-        onStart: () => {
-          card.classList.remove("bg-slate-700");
-          card.classList.add(
-            CARD_COLORS[i % CARD_COLORS.length],
-            "text-white"
-          );
-          card.innerText = accepted[i].name;
+      tl.fromTo(
+        card,
+        { y: "-=40" },
+        {
+          x: pos.x,
+          y: pos.y,
+          rotation: pos.rotation,
+          duration: 0.4,
+          ease: "power4.out",
         },
-      }, "<");
+        "+=0.06"
+      );
+
+      tl.to(
+        card,
+        {
+          rotateY: 180,
+          duration: 0.35,
+          ease: "power2.out",
+        },
+        "<"
+      );
     });
   }
 
@@ -158,14 +146,37 @@ export function RoomPicker({ members }: RoomPickerProps) {
                   ref={(el) => {
                     if (el) cardRefs.current[i] = el;
                   }}
-                  className="absolute w-20 h-28 rounded-2xl bg-slate-700 text-white flex items-center justify-center text-xs font-bold shadow-lg"
+                  className="absolute w-20 h-28"
                   style={{
                     transform: "translate3d(0,0,0)",
-                    backfaceVisibility: "hidden",
                     transformStyle: "preserve-3d",
                   }}
                 >
-                  🂠
+                  <div className="relative w-full h-full">
+
+                    {/* BACK */}
+                    <div
+                      className="absolute inset-0 rounded-2xl bg-slate-700 flex items-center justify-center text-white text-xl shadow-lg"
+                      style={{ backfaceVisibility: "hidden" }}
+                    >
+                      🂠
+                    </div>
+
+                    {/* FRONT */}
+                    <div
+                      className={
+                        "absolute inset-0 rounded-2xl flex items-center justify-center text-xs font-bold text-white px-2 text-center shadow-lg " +
+                        CARD_COLORS[i % CARD_COLORS.length]
+                      }
+                      style={{
+                        transform: "rotateY(180deg)",
+                        backfaceVisibility: "hidden",
+                      }}
+                    >
+                      {m.name}
+                    </div>
+
+                  </div>
                 </div>
               ))}
             </div>
