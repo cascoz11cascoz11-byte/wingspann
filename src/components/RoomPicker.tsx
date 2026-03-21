@@ -24,6 +24,15 @@ function sleep(ms: number) {
   return new Promise((r) => setTimeout(r, ms));
 }
 
+/** Must match CSS transition duration so each phase finishes before the next state change */
+const MOVE_MS = 780;
+const MOVE_EASE = "cubic-bezier(0.22, 1, 0.36, 1)"; /* smooth deceleration, no harsh snap */
+const STEP_PAUSE_MS = MOVE_MS + 50; /* small buffer after transform settles */
+
+const DEAL_MOVE_MS = 580;
+const DEAL_EASE = "cubic-bezier(0.25, 0.85, 0.35, 1)";
+const DEAL_STAGGER_MS = 480; /* gap between dealing each card */
+
 interface CardState {
   member: FamilyMember;
   colorIndex: number;
@@ -63,9 +72,10 @@ export function RoomPicker({ members }: RoomPickerProps) {
     return order.map((member, i) => ({
       member,
       colorIndex: i % CARD_COLORS.length,
-      x: (Math.random() - 0.5) * 180,
-      y: (Math.random() - 0.5) * 60,
-      rotate: (Math.random() - 0.5) * 35,
+      /* Slightly tighter spread = less chaotic motion, reads smoother on screen */
+      x: (Math.random() - 0.5) * 150,
+      y: (Math.random() - 0.5) * 52,
+      rotate: (Math.random() - 0.5) * 28,
       zIndex: i,
       faceDown: true,
       dealt: false,
@@ -91,31 +101,31 @@ export function RoomPicker({ members }: RoomPickerProps) {
 
     // Step 1: Stack
     setCards(makeStack(order));
-    await sleep(600);
+    await sleep(STEP_PAUSE_MS);
 
     // Step 2: Scatter
     order = shuffleArray(order);
     setCards(makeScatter(order));
-    await sleep(750);
+    await sleep(STEP_PAUSE_MS);
 
     // Step 3: Stack
     order = shuffleArray(order);
     setCards(makeStack(order));
-    await sleep(750);
+    await sleep(STEP_PAUSE_MS);
 
     // Step 4: Scatter again
     order = shuffleArray(order);
     setCards(makeScatter(order));
-    await sleep(750);
+    await sleep(STEP_PAUSE_MS);
 
     // Step 5: Final stack
     order = shuffleArray(order);
     setCards(makeStack(order));
-    await sleep(750);
+    await sleep(STEP_PAUSE_MS);
 
     // Step 6: Deal one by one
     for (let i = 0; i < total; i++) {
-      await sleep(380);
+      await sleep(DEAL_STAGGER_MS);
       const pos = dealtPosition(i);
       const topIdx = total - 1 - i;
       setCards((prev) => prev.map((c, ci) =>
@@ -173,11 +183,15 @@ export function RoomPicker({ members }: RoomPickerProps) {
                   {cards.map((card, i) => (
                     <div
                       key={card.member.id + "-" + i}
-                      className={"absolute w-20 h-28 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-1 select-none text-xs font-bold text-center px-2 leading-tight " + (card.faceDown ? "bg-slate-700" : CARD_COLORS[card.colorIndex] + " text-white")}
+                      className={"absolute w-20 h-28 rounded-2xl shadow-lg flex flex-col items-center justify-center gap-1 select-none text-xs font-bold text-center px-2 leading-tight will-change-transform " + (card.faceDown ? "bg-slate-700" : CARD_COLORS[card.colorIndex] + " text-white")}
                       style={{
-                        transform: `translate(${card.x}px, ${card.y}px) rotate(${card.rotate}deg)`,
+                        transform: `translate3d(${card.x}px, ${card.y}px, 0) rotate(${card.rotate}deg)`,
                         zIndex: card.zIndex,
-                        transition: "transform 0.65s cubic-bezier(0.25, 0.46, 0.45, 0.94), background-color 0.3s ease",
+                        backfaceVisibility: "hidden",
+                        transition:
+                          phase === "shuffling"
+                            ? `transform ${MOVE_MS}ms ${MOVE_EASE}, background-color 0.35s ease`
+                            : `transform ${DEAL_MOVE_MS}ms ${DEAL_EASE}, background-color 0.35s ease`,
                       }}
                     >
                       {card.faceDown ? (
