@@ -87,6 +87,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
     cards.forEach((card, i) => {
       const pos = dealtPosition(i);
 
+      // move in arc
       tl.fromTo(
         card,
         { y: "-=40" },
@@ -100,15 +101,15 @@ export function RoomPicker({ members }: RoomPickerProps) {
         "+=0.06"
       );
 
-      tl.to(
-        card,
-        {
+      // flip inner wrapper to reveal front
+      const inner = card.querySelector(".inner-card") as HTMLElement;
+      if (inner) {
+        tl.to(inner, {
           rotateY: 180,
           duration: 0.35,
           ease: "power2.out",
-        },
-        "<"
-      );
+        }, "<0.05");
+      }
     });
   }
 
@@ -143,17 +144,13 @@ export function RoomPicker({ members }: RoomPickerProps) {
               {accepted.map((m, i) => (
                 <div
                   key={m.id}
-                  ref={(el) => {
-                    if (el) cardRefs.current[i] = el;
-                  }}
                   className="absolute w-20 h-28"
-                  style={{
-                    transform: "translate3d(0,0,0)",
-                    transformStyle: "preserve-3d",
-                  }}
+                  ref={(el) => { if (el) cardRefs.current[i] = el; }}
                 >
-                  <div className="relative w-full h-full">
-
+                  <div
+                    className="inner-card relative w-full h-full"
+                    style={{ transformStyle: "preserve-3d" }}
+                  >
                     {/* BACK */}
                     <div
                       className="absolute inset-0 rounded-2xl bg-slate-700 flex items-center justify-center text-white text-xl shadow-lg"
@@ -175,7 +172,6 @@ export function RoomPicker({ members }: RoomPickerProps) {
                     >
                       {m.name}
                     </div>
-
                   </div>
                 </div>
               ))}
