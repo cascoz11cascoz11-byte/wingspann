@@ -51,7 +51,7 @@ export default function RootLayout({
         <meta name="apple-mobile-web-app-title" content="Wingspann" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
-      <body className="min-h-screen font-sans">
+      <body className="min-h-screen font-sans bg-white">
         <Script
           src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
           defer
