@@ -81,7 +81,7 @@ export default function RootLayout({
         <PullToRefresh />
         <Header />
         <PushSubscriber />
-        <main className="mx-auto max-w-5xl px-4 pt-20 pb-8 sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-5xl px-4 pb-8 pt-[calc(env(safe-area-inset-top,0px)+5rem)] sm:px-6 lg:px-8">
           {children}
         </main>
       </body>

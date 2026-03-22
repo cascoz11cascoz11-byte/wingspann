@@ -61,7 +61,7 @@ export function PullToRefresh() {
 
   return (
     <div
-      className="fixed top-0 left-0 right-0 z-50 flex items-center justify-center bg-sky-50 transition-all"
+      className="fixed left-0 right-0 top-0 z-[60] flex items-center justify-center bg-sky-50 transition-all"
       style={{ height: pullDistance }}
     >
       <div className={"text-sky-500 text-sm font-medium transition-all " + (pulling ? "scale-110" : "scale-90 opacity-60")}>
