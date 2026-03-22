@@ -66,11 +66,25 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
     setLuckySaved(false);
     try {
       const cats = selectedCategories.length > 0 ? selectedCategories : CATEGORIES.map(c => c.id);
-      const pos = await new Promise<GeolocationPosition>((res, rej) =>
-        navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 })
-      );
-      const base = typeof window !== "undefined" && window.location.hostname !== "localhost" ? "https://wingspann.vercel.app" : "";
-      const url = base + "/api/find-activities?categories=" + cats.join(",") + "&lat=" + pos.coords.latitude + "&lng=" + pos.coords.longitude;
+      let lat: number;
+      let lng: number;
+
+      try {
+        const { Geolocation } = await import("@capacitor/geolocation");
+        await Geolocation.requestPermissions();
+        const pos = await Geolocation.getCurrentPosition({ timeout: 10000 });
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      } catch {
+        const pos = await new Promise<GeolocationPosition>((res, rej) =>
+          navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 })
+        );
+        lat = pos.coords.latitude;
+        lng = pos.coords.longitude;
+      }
+
+      const base = typeof window !== "undefined" && (window as any).Capacitor ? "https://wingspann.vercel.app" : "";
+      const url = base + "/api/find-activities?categories=" + cats.join(",") + "&lat=" + lat + "&lng=" + lng;
       const res = await fetch(url);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
