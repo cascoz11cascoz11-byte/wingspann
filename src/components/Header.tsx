@@ -50,7 +50,7 @@ export function Header() {
   }
 
   return (
-    <header className="border-b-2 border-sky-100 bg-white/95 shadow-sm shadow-sky-100/50 backdrop-blur-sm fixed top-0 left-0 right-0 z-50">
+    <header className="border-b-2 border-sky-100 bg-white shadow-sm shadow-sky-100/50 fixed top-0 left-0 right-0 z-50" style={{ paddingTop: "env(safe-area-inset-top)" }}>
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <Link href="/">

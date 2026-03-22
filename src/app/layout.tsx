@@ -73,11 +73,11 @@ export default function RootLayout({
             });
           });
         `}</Script>
-       <SplashScreen />
+        <SplashScreen />
         <PullToRefresh />
         <Header />
         <PushSubscriber />
-        <main className="mx-auto max-w-5xl px-4 py-8 sm:px-6 lg:px-8">
+        <main className="mx-auto max-w-5xl px-4 pt-20 pb-8 sm:px-6 lg:px-8">
           {children}
         </main>
       </body>
