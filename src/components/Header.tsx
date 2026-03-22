@@ -51,8 +51,8 @@ export function Header() {
 
   return (
     <header
-      className="border-b-2 border-sky-100 bg-white shadow-sm shadow-sky-100/50 fixed left-0 right-0 z-50"
-      style={{ top: 0, paddingTop: "env(safe-area-inset-top)" }}
+      className="fixed left-0 right-0 top-0 z-50 w-full border-b-2 border-sky-100 bg-white shadow-sm shadow-sky-100/50"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">

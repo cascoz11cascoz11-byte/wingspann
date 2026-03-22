@@ -13,10 +13,13 @@
   --coral: 249 115 22;
 }
 
+html {
+  background-color: #ffffff;
+}
+
 body {
   @apply bg-white text-slate-800 antialiased;
   font-family: var(--font-body);
-  padding-top: env(safe-area-inset-top);
   padding-bottom: env(safe-area-inset-bottom);
   background-color: white;
 }
