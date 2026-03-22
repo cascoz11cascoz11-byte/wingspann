@@ -69,7 +69,8 @@ export function HomeActivityFinder({ trips }: HomeActivityFinderProps) {
       const pos = await new Promise<GeolocationPosition>((res, rej) =>
         navigator.geolocation.getCurrentPosition(res, rej, { timeout: 10000 })
       );
-      const url = "/api/find-activities?categories=" + cats.join(",") + "&lat=" + pos.coords.latitude + "&lng=" + pos.coords.longitude;
+      const base = typeof window !== "undefined" && window.location.hostname !== "localhost" ? "https://wingspann.vercel.app" : "";
+      const url = base + "/api/find-activities?categories=" + cats.join(",") + "&lat=" + pos.coords.latitude + "&lng=" + pos.coords.longitude;
       const res = await fetch(url);
       const data = await res.json();
       if (data.error) throw new Error(data.error);
