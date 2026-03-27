@@ -24,10 +24,14 @@
 	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSRequiresIPhoneOS</key>
 	<true/>
-	<key>Privacy - Location Always Usage Description` → `Wingspann needs your location to find nearby activities`</key>
-	<string></string>
-	<key>Privacy - Location When In Use Usage Description` → `Wingspann needs your location to find nearby activities`</key>
-	<string></string>
+	<key>NSLocationAlwaysUsageDescription</key>
+	<string>Wingspann needs your location to find nearby activities</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Wingspann needs your location to find nearby activities</string>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>remote-notification</string>
+	</array>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIMainStoryboardFile</key>
