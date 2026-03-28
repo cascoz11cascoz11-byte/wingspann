@@ -1,5 +1,4 @@
 import type { CapacitorConfig } from '@capacitor/cli';
-
 const config: CapacitorConfig = {
   appId: 'com.wingspann.app',
   appName: 'Wingspann',
@@ -13,5 +12,4 @@ const config: CapacitorConfig = {
     contentInset: 'always',
   },
 };
-
 export default config;

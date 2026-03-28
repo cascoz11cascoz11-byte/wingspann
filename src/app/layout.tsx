@@ -2,7 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Outfit, Playfair_Display } from "next/font/google";
 import "./globals.css";
 import { Header } from "@/components/Header";
-import { PushSubscriber } from "@/components/PushSubscriber";
+
 import { PullToRefresh } from "@/components/PullToRefresh";
 import Script from "next/script";
 import { SplashScreen } from "@/components/SplashScreen";
@@ -56,27 +56,7 @@ export default function RootLayout({
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
       </head>
       <body className="min-h-screen font-sans bg-white">
-        <Script
-          src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js"
-          defer
-          strategy="afterInteractive"
-        />
-        <Script id="onesignal-init" strategy="afterInteractive">{`
-          window.OneSignalDeferred = window.OneSignalDeferred || [];
-          OneSignalDeferred.push(async function(OneSignal) {
-            await OneSignal.init({
-              appId: "68f645ed-1d8f-4e5c-97bb-1548062edcd8",
-              safari_web_id: "web.onesignal.auto.18427476-d96c-4d38-9e88-40d33a9d693d",
-              notifyButton: {
-                enable: true,
-              },
-              welcomeNotification: {
-                title: "Wingspann",
-                message: "Thanks for subscribing! We'll notify you about trip updates.",
-              },
-            });
-          });
-        `}</Script>
+       
         <SplashScreen />
         <PullToRefresh />
         <Header />
