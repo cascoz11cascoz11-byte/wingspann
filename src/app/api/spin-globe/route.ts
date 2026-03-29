@@ -1,92 +1,116 @@
 import { NextResponse } from "next/server";
 
-const regionCoordinates: Record<string, { lat: number; lng: number; radius: number }> = {
-  "🌍 Whole World":        { lat: 20,    lng: 0,     radius: 20000000 },
-  "🇺🇸 United States":    { lat: 39.5,  lng: -98.35, radius: 3000000 },
-  "🌎 North America":      { lat: 54,    lng: -105,   radius: 4000000 },
-  "🌎 South America":      { lat: -15,   lng: -60,    radius: 4000000 },
-  "🌍 Europe":             { lat: 54,    lng: 15,     radius: 3000000 },
-  "🌍 Africa":             { lat: 0,     lng: 25,     radius: 5000000 },
-  "🌏 Asia":               { lat: 34,    lng: 100,    radius: 5000000 },
-  "🌏 Oceania":            { lat: -25,   lng: 140,    radius: 4000000 },
-  "🌨️ Arctic / Antarctica": { lat: -82, lng: 0,      radius: 3000000 },
+const countriesByRegion: Record<string, string[]> = {
+  "🌍 Whole World": [
+    "Japan", "Morocco", "Peru", "Iceland", "Tanzania", "Vietnam", "Portugal", "Colombia",
+    "Jordan", "New Zealand", "Ethiopia", "Croatia", "Chile", "Georgia", "Bhutan",
+    "Montenegro", "Rwanda", "Oman", "Bolivia", "Slovenia", "Kyrgyzstan", "Laos",
+    "Namibia", "Armenia", "Ecuador", "Albania", "Madagascar", "Uzbekistan", "Panama", "Sri Lanka",
+  ],
+  "🇺🇸 United States": [
+    "Alaska", "Hawaii", "Montana", "Utah", "Arizona", "New Mexico", "Oregon", "Washington State",
+    "Wyoming", "Colorado", "Idaho", "Vermont", "Maine", "Tennessee", "Louisiana",
+    "West Virginia", "Mississippi", "Kentucky", "South Carolina", "New Hampshire",
+  ],
+  "🌎 North America": [
+    "Mexico", "Guatemala", "Belize", "Costa Rica", "Panama", "Cuba", "Jamaica",
+    "Dominican Republic", "Barbados", "Nicaragua", "Honduras", "Bahamas",
+  ],
+  "🌎 South America": [
+    "Brazil", "Argentina", "Chile", "Peru", "Colombia", "Ecuador", "Bolivia",
+    "Uruguay", "Paraguay", "Venezuela", "Guyana", "Suriname",
+  ],
+  "🌍 Europe": [
+    "Portugal", "Spain", "France", "Italy", "Greece", "Croatia", "Slovenia",
+    "Montenegro", "Albania", "Bulgaria", "Romania", "Poland", "Czech Republic",
+    "Hungary", "Austria", "Switzerland", "Germany", "Netherlands", "Denmark",
+    "Norway", "Sweden", "Finland", "Estonia", "Latvia", "Lithuania", "Iceland",
+    "Malta", "Cyprus", "Bosnia and Herzegovina", "Serbia", "Kosovo",
+  ],
+  "🌍 Africa": [
+    "Morocco", "Tunisia", "Egypt", "Ethiopia", "Tanzania", "Kenya", "Rwanda",
+    "Uganda", "Ghana", "Senegal", "South Africa", "Namibia", "Botswana",
+    "Zimbabwe", "Zambia", "Mozambique", "Madagascar", "Mauritius", "Seychelles",
+  ],
+  "🌏 Asia": [
+    "Japan", "Vietnam", "Thailand", "Cambodia", "Laos", "Myanmar", "Indonesia",
+    "Philippines", "Malaysia", "Singapore", "Sri Lanka", "India", "Nepal",
+    "Bhutan", "China", "South Korea", "Taiwan", "Mongolia",
+    "Uzbekistan", "Kyrgyzstan", "Georgia", "Armenia", "Jordan", "Oman", "Turkey",
+  ],
+  "🌏 Oceania": [
+    "New Zealand", "Fiji", "Vanuatu", "Samoa", "Tonga", "Papua New Guinea",
+    "French Polynesia", "New Caledonia", "Cook Islands",
+  ],
+  "🌨️ Arctic / Antarctica": [
+    "Iceland", "Greenland", "Svalbard", "Faroe Islands", "Northern Norway",
+    "Northern Finland", "Antarctica",
+  ],
 };
 
-const surprisingKeywords = [
-  "ancient ruins", "hidden waterfall", "volcanic island", "salt flats",
-  "canyon", "floating village", "cave temple", "glacier", "desert oasis",
-  "historic fortress", "underground city", "coral reef", "hot springs",
-  "fjord", "mysterious lake", "abandoned city", "fairy chimney",
-  "night market", "sacred mountain", "jungle temple",
-];
+const emojiMap: Record<string, string> = {
+  "Japan": "⛩️", "Morocco": "🕌", "Peru": "🏔️", "Iceland": "🌋", "Tanzania": "🦁",
+  "Vietnam": "🍜", "Portugal": "🌊", "Colombia": "🌸", "Jordan": "🏺", "New Zealand": "🎿",
+  "Ethiopia": "☕", "Croatia": "💧", "Chile": "🏔️", "Georgia": "🍷", "Bhutan": "🏯",
+  "Montenegro": "🏖️", "Rwanda": "🦍", "Oman": "🏜️", "Bolivia": "🪞", "Slovenia": "🏔️",
+  "Alaska": "🐻", "Hawaii": "🌺", "Montana": "🦌", "Utah": "🏜️", "Arizona": "🌵",
+  "New Mexico": "🌶️", "Oregon": "🌲", "Washington State": "🌧️", "Wyoming": "🦬", "Colorado": "⛷️",
+  "Mexico": "🌮", "Costa Rica": "🌿", "Cuba": "💃", "Jamaica": "🏄",
+  "Brazil": "🎭", "Argentina": "💃", "Ecuador": "🦜", "Fiji": "🏝️",
+  "France": "🥐", "Italy": "🍕", "Greece": "🏛️", "Spain": "💃", "Germany": "🍺",
+  "Norway": "🌊", "Sweden": "🫎", "Finland": "🌲", "Egypt": "🐪", "Kenya": "🦒",
+  "South Africa": "🦁", "India": "🕌", "Thailand": "🛕", "Indonesia": "🌴",
+  "Svalbard": "🐻‍❄️", "Antarctica": "🐧", "Greenland": "🧊", "Faroe Islands": "🐑",
+};
 
 export async function GET(req: Request) {
   const { searchParams } = new URL(req.url);
   const region = searchParams.get("region") ?? "🌍 Whole World";
-  const coords = regionCoordinates[region] ?? regionCoordinates["🌍 Whole World"];
+
+  const countries = countriesByRegion[region] ?? countriesByRegion["🌍 Whole World"];
+  const country = countries[Math.floor(Math.random() * countries.length)];
+  const emoji = emojiMap[country] ?? "📍";
   const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
 
-  if (!apiKey) return NextResponse.json({ error: "No Google Maps API key" }, { status: 500 });
-
-  // Pick a random surprising keyword
-  const keyword = surprisingKeywords[Math.floor(Math.random() * surprisingKeywords.length)];
-
-  // Random offset within the region so we don't always get the same results
-  const latOffset = (Math.random() - 0.5) * 20;
-  const lngOffset = (Math.random() - 0.5) * 20;
-  const lat = coords.lat + latOffset;
-  const lng = coords.lng + lngOffset;
-
-  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${Math.min(coords.radius, 500000)}&keyword=${encodeURIComponent(keyword)}&type=tourist_attraction&key=${apiKey}`;
-
-  const res = await fetch(url);
-  const data = await res.json();
-
-  const results = data.results ?? [];
-  if (results.length === 0) {
-    return NextResponse.json({ error: "No results found, try again!" }, { status: 404 });
+  if (!apiKey) {
+    return NextResponse.json({
+      name: country,
+      country,
+      emoji,
+      facts: ["No API key configured.", "Add NEXT_PUBLIC_GOOGLE_MAPS_API_KEY to Vercel.", "Then redeploy."],
+    });
   }
 
-  // Pick a random result from top 10
-  const place = results[Math.floor(Math.random() * Math.min(results.length, 10))];
+  try {
+    const res = await fetch(
+      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=top+tourist+attractions+in+${encodeURIComponent(country)}&type=tourist_attraction&key=${apiKey}`,
+      { next: { revalidate: 3600 } }
+    );
 
-  // Get place details for more info
-  const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=name,formatted_address,editorial_summary,rating,user_ratings_total,types&key=${apiKey}`;
-  const detailsRes = await fetch(detailsUrl);
-  const detailsData = await detailsRes.json();
-  const details = detailsData.result ?? {};
+    if (!res.ok) throw new Error("Places API error: " + res.status);
 
-  const name = details.name ?? place.name;
-  const address = details.formatted_address ?? place.vicinity ?? "";
-  const country = address.split(",").pop()?.trim() ?? region;
-  const summary = details.editorial_summary?.overview ?? "";
-  const rating = details.rating ? `Rated ${details.rating}/5 by ${details.user_ratings_total?.toLocaleString()} visitors.` : "";
-  const types = (details.types ?? [])
-    .filter((t: string) => !["point_of_interest", "establishment"].includes(t))
-    .map((t: string) => t.replace(/_/g, " "))
-    .slice(0, 2)
-    .join(", ");
+    const data = await res.json();
 
-  const facts = [
-    summary || `A ${keyword} destination in ${country}.`,
-    rating || `Known for ${types || "its unique character"}.`,
-    `Found in: ${address}`,
-  ].filter(Boolean).slice(0, 3);
+    if (!data.results || data.results.length === 0) throw new Error("No results");
 
-  const emojiMap: Record<string, string> = {
-    "ancient ruins": "🏛️", "hidden waterfall": "💧", "volcanic island": "🌋",
-    "salt flats": "🏜️", "canyon": "🏔️", "floating village": "🚣",
-    "cave temple": "⛩️", "glacier": "🧊", "desert oasis": "🌴",
-    "historic fortress": "🏰", "underground city": "🕳️", "coral reef": "🐠",
-    "hot springs": "♨️", "fjord": "🏔️", "mysterious lake": "🌊",
-    "abandoned city": "👻", "fairy chimney": "🍄", "night market": "🏮",
-    "sacred mountain": "⛰️", "jungle temple": "🌿",
-  };
+    const top3 = data.results.slice(0, 3);
+    const facts = top3.map((place: any) => {
+      const rating = place.rating ? ` — rated ${place.rating}/5` : "";
+      return `${place.name}${rating}`;
+    });
 
-  return NextResponse.json({
-    name,
-    country,
-    emoji: emojiMap[keyword] ?? "📍",
-    facts,
-  });
+    return NextResponse.json({ name: country, country, emoji, facts });
+  } catch (e) {
+    // Fallback — still return the country, just with generic facts
+    return NextResponse.json({
+      name: country,
+      country,
+      emoji,
+      facts: [
+        "One of the world's most captivating destinations.",
+        "Rich in culture, history, and breathtaking scenery.",
+        "Add it to your wishlist and start dreaming!",
+      ],
+    });
+  }
 }
