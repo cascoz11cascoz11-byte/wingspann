@@ -14,6 +14,7 @@ import { CarOrganizer } from "@/components/CarOrganizer";
 import { ActivityFinder } from "@/components/ActivityFinder";
 import { ExpenseTracker } from "@/components/ExpenseTracker";
 import { MapTab } from "@/components/MapTab";
+import { PhotoCircleLink } from "@/components/PhotoCircleLink";
 
 function formatDateRange(start: string, end: string) {
   const s = new Date(start + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -97,7 +98,7 @@ export default function TripDetailPage() {
   return (
     <div>
       <div className="flex items-center justify-between mb-6">
-      <Link href="/?tab=trips" className="text-sm text-slate-600 hover:text-sky-600">
+        <Link href="/?tab=trips" className="text-sm text-slate-600 hover:text-sky-600">
           Back to trips
         </Link>
         <button
@@ -111,7 +112,7 @@ export default function TripDetailPage() {
 
       <div className="mb-6">
         <div className="flex items-start justify-between gap-4">
-          <div>
+          <div className="flex-1">
             <h1 className="font-display text-2xl font-semibold text-sky-700">{trip.name}</h1>
             <p className="mt-1 text-slate-600">{trip.destination}</p>
             <p className="mt-1 text-sm text-slate-500">{formatDateRange(trip.startDate, trip.endDate)}</p>
@@ -119,6 +120,9 @@ export default function TripDetailPage() {
               {countdown.label}
             </span>
             {trip.description && <p className="mt-2 text-slate-600">{trip.description}</p>}
+            <div className="mt-4">
+              <PhotoCircleLink tripName={trip.name} />
+            </div>
           </div>
           <button onClick={copyInviteLink} className="btn-secondary shrink-0 text-sm">
             {copied ? "Copied!" : "Copy invite link"}

@@ -91,6 +91,9 @@ export function Header() {
                 <Link href="/wishlist" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
                   🌟 Wishlist
                 </Link>
+                <Link href="/notification-settings" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
+                  🔔 Notification Settings
+                </Link>
               </div>
 
               {trips.length > 0 && (

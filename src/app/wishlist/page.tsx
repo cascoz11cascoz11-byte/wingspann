@@ -4,6 +4,7 @@ import { getWishlist, removeFromWishlist, addToWishlist, getTrips, addActivity, 
 import type { WishlistItem, Board } from "@/lib/store";
 import type { Trip } from "@/types";
 import Link from "next/link";
+import { SpinTheGlobe } from "@/components/SpinTheGlobe";
 
 const TYPE_CONFIG = {
   destination: { label: "Destination", emoji: "🌍", color: "bg-violet-100 text-violet-700" },
@@ -27,7 +28,7 @@ const GRADIENTS = [
 
 const EMOJIS = ["🗺️","🌍","🌎","🌏","✈️","🏖️","🏔️","🌴","🗽","🏯","🎡","🍜","🍷","🎭","🎿","🤿","🧳","🌅"];
 
-type Tab = "personal" | "shared";
+type Tab = "personal" | "shared" | "globe";
 
 function formatDate(d: string) {
   return new Date(d + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
@@ -36,7 +37,6 @@ function formatDate(d: string) {
 export default function WishlistPage() {
   const [tab, setTab] = useState<Tab>("personal");
 
-  // Personal wishlist state
   const [items, setItems] = useState<WishlistItem[]>([]);
   const [trips, setTrips] = useState<Trip[]>([]);
   const [loading, setLoading] = useState(true);
@@ -53,7 +53,6 @@ export default function WishlistPage() {
   const [link, setLink] = useState("");
   const [saving, setSaving] = useState(false);
 
-  // Boards state
   const [boards, setBoards] = useState<Board[]>([]);
   const [boardsLoading, setBoardsLoading] = useState(true);
   const [boardAddOpen, setBoardAddOpen] = useState(false);
@@ -149,7 +148,6 @@ export default function WishlistPage() {
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4 space-y-6">
-      {/* Header */}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="font-display text-2xl font-semibold text-sky-700">🌟 Wishlist</h1>
@@ -166,7 +164,6 @@ export default function WishlistPage() {
         </div>
       </div>
 
-      {/* Tabs */}
       <div className="flex gap-6 border-b border-slate-200">
         <button type="button" onClick={() => setTab("personal")} className={tab === "personal" ? activeTab : inactiveTab}>
           🔒 Personal
@@ -174,12 +171,13 @@ export default function WishlistPage() {
         <button type="button" onClick={() => setTab("shared")} className={tab === "shared" ? activeTab : inactiveTab}>
           🗺️ Shared Boards
         </button>
+        <button type="button" onClick={() => setTab("globe")} className={tab === "globe" ? activeTab : inactiveTab}>
+          🌍 Spin the Globe
+        </button>
       </div>
 
-      {/* Personal tab */}
       {tab === "personal" && (
         <div className="space-y-4">
-          {/* Filter pills */}
           <div className="flex gap-2 flex-wrap">
             <button type="button" onClick={() => setFilter("all")} className={"rounded-full px-3 py-1.5 text-xs font-medium border-2 transition " + (filter === "all" ? "border-sky-400 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-500 hover:border-sky-200")}>
               All {items.length > 0 && `(${items.length})`}
@@ -271,7 +269,6 @@ export default function WishlistPage() {
         </div>
       )}
 
-      {/* Shared boards tab */}
       {tab === "shared" && (
         <div className="space-y-4">
           {boardsLoading ? (
@@ -315,7 +312,10 @@ export default function WishlistPage() {
         </div>
       )}
 
-      {/* Personal add modal */}
+      {tab === "globe" && (
+        <SpinTheGlobe />
+      )}
+
       {addOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => { setAddOpen(false); resetForm(); }} />
@@ -372,7 +372,6 @@ export default function WishlistPage() {
         </div>
       )}
 
-      {/* Board create modal */}
       {boardAddOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setBoardAddOpen(false)} />
