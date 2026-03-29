@@ -1,20 +1,21 @@
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
-const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
-);
-
-async function sendAPNSNotification(token: string, title: string, body: string) {
-  await fetch("https://wingspann.vercel.app/api/send-notification", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ token, type: "join", tripName: title, activityName: body }),
-  });
-}
-
 export async function POST(req: Request) {
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) return NextResponse.json({ error: "Server not configured" }, { status: 500 });
+
+  const supabase = createClient(url, key);
+
+  async function sendAPNSNotification(token: string, title: string, body: string) {
+    await fetch("https://wingspann.vercel.app/api/send-notification", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ token, type: "join", tripName: title, activityName: body }),
+    });
+  }
+
   try {
     const { tripId, tripName, memberNames, joinedByUserId } = await req.json();
     if (!tripId) return NextResponse.json({ error: "Missing tripId" }, { status: 400 });
