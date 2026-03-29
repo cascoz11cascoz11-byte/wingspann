@@ -1,22 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import jwt from "jsonwebtoken";
 
-const APNS_KEY_ID = process.env.APNS_KEY_ID!;
-const APNS_TEAM_ID = process.env.APNS_TEAM_ID!;
-const APNS_BUNDLE_ID = process.env.APNS_BUNDLE_ID!;
-const APNS_PRIVATE_KEY = process.env.APNS_PRIVATE_KEY!.replace(/\\n/g, "\n");
-
-function makeJWT() {
-  return jwt.sign({}, APNS_PRIVATE_KEY, {
-    algorithm: "ES256",
-    keyid: APNS_KEY_ID,
-    issuer: APNS_TEAM_ID,
-    audience: "appstoreconnect-v1",
-    expiresIn: "1h",
-  });
-}
-
 export async function POST(req: NextRequest) {
+  const APNS_KEY_ID = process.env.APNS_KEY_ID;
+  const APNS_TEAM_ID = process.env.APNS_TEAM_ID;
+  const APNS_BUNDLE_ID = process.env.APNS_BUNDLE_ID;
+  const APNS_PRIVATE_KEY = process.env.APNS_PRIVATE_KEY?.replace(/\\n/g, "\n");
+
+  if (!APNS_KEY_ID || !APNS_TEAM_ID || !APNS_BUNDLE_ID || !APNS_PRIVATE_KEY) {
+    return NextResponse.json({ error: "Missing APNS environment variables" }, { status: 500 });
+  }
+
   const { token, type, tripName, activityName } = await req.json();
 
   const messages: Record<string, { title: string; body: string }> = {
@@ -37,7 +31,13 @@ export async function POST(req: NextRequest) {
   const message = messages[type];
   if (!message) return NextResponse.json({ error: "Invalid type" }, { status: 400 });
 
-  const jwtToken = makeJWT();
+  const jwtToken = jwt.sign({}, APNS_PRIVATE_KEY, {
+    algorithm: "ES256",
+    keyid: APNS_KEY_ID,
+    issuer: APNS_TEAM_ID,
+    audience: "appstoreconnect-v1",
+    expiresIn: "1h",
+  });
 
   const response = await fetch(`https://api.push.apple.com/3/device/${token}`, {
     method: "POST",
