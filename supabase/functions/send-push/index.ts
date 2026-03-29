@@ -69,6 +69,7 @@ Deno.serve(async (req) => {
         aps: {
           alert: { title: message.title, body: message.body },
           sound: "default",
+          badge: 1,
         },
       }),
     });
