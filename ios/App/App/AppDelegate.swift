@@ -2,11 +2,13 @@ import UIKit
 import Capacitor
 import FirebaseCore
 import FirebaseMessaging
+import WebKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
 
     var window: UIWindow?
+    var pendingFCMToken: String?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FirebaseApp.configure()
@@ -28,9 +30,41 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let token = fcmToken else { return }
         print("FCM Token: \(token)")
-        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-            if let bridge = (UIApplication.shared.windows.first?.rootViewController as? CAPBridgeViewController)?.bridge {
-                bridge.triggerJSEvent(eventName: "fcmToken", target: "window", data: "{\"token\": \"\(token)\"}")
+        pendingFCMToken = token
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
+            self.injectTokenIntoWebView(token: token)
+        }
+    }
+
+    func findWKWebView(in view: UIView) -> WKWebView? {
+        if let webView = view as? WKWebView { return webView }
+        for subview in view.subviews {
+            if let found = findWKWebView(in: subview) { return found }
+        }
+        return nil
+    }
+
+    func injectTokenIntoWebView(token: String) {
+        guard let rootVC = window?.rootViewController else {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { self.injectTokenIntoWebView(token: token) }
+            return
+        }
+        guard let webView = findWKWebView(in: rootVC.view) else {
+            print("WKWebView not found, retrying...")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { self.injectTokenIntoWebView(token: token) }
+            return
+        }
+        // Store on window AND dispatch event
+        let js = """
+            window.__fcmToken = '\(token)';
+            window.dispatchEvent(new CustomEvent('fcmToken', { detail: { token: '\(token)' } }));
+            console.log('FCM token injected into window:', '\(token)');
+        """
+        webView.evaluateJavaScript(js) { result, error in
+            if let error = error {
+                print("JS injection error: \(error)")
+            } else {
+                print("JS injection success!")
             }
         }
     }
