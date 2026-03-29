@@ -21,20 +21,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         return true
     }
 
-    // Called when APNs gives us a token — pass it to Firebase
-    func application(_ applicationUIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
         Messaging.messaging().apnsToken = deviceToken
     }
 
-    // Called when Firebase gives us an FCM token
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let token = fcmToken else { return }
         print("FCM Token: \(token)")
-        // Send token to your app via JS bridge
-        NotificationCenter.default.post(name: Notification.Name("FCMToken"), object: nil, userInfo: ["token": token])
+        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+            if let bridge = (UIApplication.shared.windows.first?.rootViewController as? CAPBridgeViewController)?.bridge {
+                bridge.triggerJSEvent(eventName: "fcmToken", target: "window", data: "{\"token\": \"\(token)\"}")
+            }
+        }
     }
 
-    // Show notification when app is in foreground
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         completionHandler([.banner, .sound, .badge])
     }

@@ -4,46 +4,30 @@ import { createClient } from "@/lib/supabase";
 
 export function PushSubscriber() {
   useEffect(() => {
-    async function registerFCMToken() {
+    async function saveFCMToken(token: string) {
       try {
-        const { Capacitor } = await import("@capacitor/core");
-        if (!Capacitor.isNativePlatform()) return;
-
-        // Listen for FCM token from native bridge
-        const { App } = await import("@capacitor/app");
-        
-        // Get token via custom plugin event or window
-        const win = window as any;
-        
-        // Poll for FCM token that AppDelegate posts
-        let attempts = 0;
-        const interval = setInterval(async () => {
-          attempts++;
-          const token = win.__fcmToken;
-          if (token) {
-            clearInterval(interval);
-            await saveFCMToken(token);
-          }
-          if (attempts > 20) clearInterval(interval);
-        }, 1000);
-
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        await supabase.from("push_subscriptions").upsert({
+          user_id: user.id,
+          fcm_token: token,
+        }, { onConflict: "user_id" });
+        console.log("FCM token saved:", token);
       } catch (e) {
-        console.error("FCM registration error:", e);
+        console.error("Failed to save FCM token:", e);
       }
     }
 
-    async function saveFCMToken(token: string) {
-      const supabase = createClient();
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
-      await supabase.from("push_subscriptions").upsert({
-        user_id: user.id,
-        fcm_token: token,
-      }, { onConflict: "user_id" });
-      console.log("FCM token saved:", token);
-    }
+    // Listen for FCM token event from native layer
+    const handler = (event: any) => {
+      const token = event.detail?.token || event.token;
+      if (token) saveFCMToken(token);
+    };
 
-    registerFCMToken();
+    window.addEventListener("fcmToken", handler);
+    return () => window.removeEventListener("fcmToken", handler);
   }, []);
+
   return null;
 }
