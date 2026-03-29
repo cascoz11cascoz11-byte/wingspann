@@ -172,8 +172,8 @@ export default function WishlistPage() {
           🗺️ Shared Boards
         </button>
         <button type="button" onClick={() => setTab("globe")} className={tab === "globe" ? activeTab : inactiveTab}>
-          🌍 Spin the Globe
-        </button>
+  🎯 Throw a Dart
+</button>
       </div>
 
       {tab === "personal" && (

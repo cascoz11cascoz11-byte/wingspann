@@ -11,7 +11,6 @@ export function PushSubscriber() {
     const supabase = createClient();
 
     async function registerPush() {
-      // 1. Ask for permission
       let permission = await PushNotifications.checkPermissions();
       if (permission.receive === "prompt") {
         permission = await PushNotifications.requestPermissions();
@@ -20,16 +19,24 @@ export function PushSubscriber() {
         console.warn("Push notifications not granted.");
         return;
       }
-
-      // 2. Register with Apple (APNs) — no Firebase needed
       await PushNotifications.register();
     }
 
-    // 3. When Apple gives us a device token, save it to Supabase
+    // Clear badge whenever the page becomes visible
+    function clearBadge() {
+      PushNotifications.removeAllDeliveredNotifications();
+    }
+
+    document.addEventListener("visibilitychange", () => {
+      if (document.visibilityState === "visible") clearBadge();
+    });
+
+    // Clear on load too
+    clearBadge();
+
     const tokenSub = PushNotifications.addListener("registration", async (token) => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return;
-
       await supabase.from("push_tokens").upsert({
         user_id: user.id,
         token: token.value,
@@ -38,26 +45,24 @@ export function PushSubscriber() {
       }, { onConflict: "user_id" });
     });
 
-    // 4. Handle errors
     const errorSub = PushNotifications.addListener("registrationError", (err) => {
       console.error("Push registration error:", err);
     });
 
-    // 5. Handle incoming notifications while app is open
-    const notifSub = PushNotifications.addListener("pushNotificationReceived", (notification) => {
-      console.log("Notification received:", notification);
-      // You can show an in-app alert here if you want
+    const notifSub = PushNotifications.addListener("pushNotificationReceived", () => {
+      // App is open — clear badge immediately
+      PushNotifications.removeAllDeliveredNotifications();
     });
 
-    // 6. Handle tap on notification (app was in background)
-    const actionSub = PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
-      console.log("Notification tapped:", action.notification);
-      // You can navigate to specific screens here based on action.notification.data
+    const actionSub = PushNotifications.addListener("pushNotificationActionPerformed", () => {
+      // User tapped notification — clear badge
+      PushNotifications.removeAllDeliveredNotifications();
     });
 
     registerPush();
 
     return () => {
+      document.removeEventListener("visibilitychange", clearBadge);
       tokenSub.then(s => s.remove());
       errorSub.then(s => s.remove());
       notifSub.then(s => s.remove());

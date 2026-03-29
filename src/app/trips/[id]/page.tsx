@@ -110,7 +110,7 @@ export default function TripDetailPage() {
         </button>
       </div>
 
-      <div className="mb-6">
+      <div className="mb-6 space-y-3">
         <div className="flex items-start justify-between gap-4">
           <div className="flex-1">
             <h1 className="font-display text-2xl font-semibold text-sky-700">{trip.name}</h1>
@@ -120,13 +120,13 @@ export default function TripDetailPage() {
               {countdown.label}
             </span>
             {trip.description && <p className="mt-2 text-slate-600">{trip.description}</p>}
-            <div className="mt-4">
-              <PhotoCircleLink tripName={trip.name} />
-            </div>
           </div>
-          <button onClick={copyInviteLink} className="btn-secondary shrink-0 text-sm">
-            {copied ? "Copied!" : "Copy invite link"}
-          </button>
+          <div className="flex flex-col gap-2 shrink-0">
+            <button onClick={copyInviteLink} className="btn-secondary text-sm">
+              {copied ? "Copied!" : "Copy invite link"}
+            </button>
+            <PhotoCircleLink tripName={trip.name} />
+          </div>
         </div>
       </div>
 
