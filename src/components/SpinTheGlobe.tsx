@@ -1,121 +1,127 @@
-import { NextResponse } from "next/server";
+"use client";
+import { useState } from "react";
+import { addToWishlist } from "@/lib/store";
 
-const countriesByRegion: Record<string, string[]> = {
-  "🌍 Whole World": [
-    "Japan", "Morocco", "Peru", "Iceland", "Tanzania", "Vietnam", "Portugal", "Colombia",
-    "Jordan", "New Zealand", "Ethiopia", "Croatia", "Chile", "Georgia", "Bhutan",
-    "Montenegro", "Rwanda", "Oman", "Bolivia", "Slovenia", "Kyrgyzstan", "Laos",
-    "Namibia", "Armenia", "Ecuador", "Albania", "Madagascar", "Uzbekistan", "Panama", "Sri Lanka",
-  ],
-  "🇺🇸 United States": [
-    "Alaska", "Hawaii", "Montana", "Utah", "Arizona", "New Mexico", "Oregon", "Washington",
-    "Wyoming", "Colorado", "Idaho", "North Dakota", "South Dakota", "Vermont", "Maine",
-    "Tennessee", "Louisiana", "West Virginia", "Mississippi", "Kentucky",
-  ],
-  "🌎 North America": [
-    "Mexico", "Guatemala", "Belize", "Costa Rica", "Panama", "Cuba", "Jamaica",
-    "Dominican Republic", "Puerto Rico", "Barbados", "Trinidad and Tobago", "Nicaragua",
-    "Honduras", "El Salvador", "Haiti", "Bahamas", "Aruba", "Cayman Islands",
-  ],
-  "🌎 South America": [
-    "Brazil", "Argentina", "Chile", "Peru", "Colombia", "Ecuador", "Bolivia",
-    "Uruguay", "Paraguay", "Venezuela", "Guyana", "Suriname", "French Guiana",
-  ],
-  "🌍 Europe": [
-    "Portugal", "Spain", "France", "Italy", "Greece", "Croatia", "Slovenia",
-    "Montenegro", "Albania", "North Macedonia", "Bulgaria", "Romania", "Moldova",
-    "Ukraine", "Poland", "Czech Republic", "Slovakia", "Hungary", "Austria",
-    "Switzerland", "Germany", "Netherlands", "Belgium", "Denmark", "Norway",
-    "Sweden", "Finland", "Estonia", "Latvia", "Lithuania", "Iceland", "Malta",
-    "Cyprus", "Luxembourg", "Liechtenstein", "Monaco", "San Marino", "Kosovo",
-    "Bosnia and Herzegovina", "Serbia",
-  ],
-  "🌍 Africa": [
-    "Morocco", "Tunisia", "Egypt", "Ethiopia", "Tanzania", "Kenya", "Rwanda",
-    "Uganda", "Ghana", "Senegal", "South Africa", "Namibia", "Botswana",
-    "Zimbabwe", "Zambia", "Mozambique", "Madagascar", "Mauritius", "Seychelles",
-    "Ivory Coast", "Cameroon", "Mali", "Benin", "Togo", "Cape Verde",
-  ],
-  "🌏 Asia": [
-    "Japan", "Vietnam", "Thailand", "Cambodia", "Laos", "Myanmar", "Indonesia",
-    "Philippines", "Malaysia", "Singapore", "Sri Lanka", "India", "Nepal",
-    "Bhutan", "Bangladesh", "China", "South Korea", "Taiwan", "Mongolia",
-    "Uzbekistan", "Kyrgyzstan", "Kazakhstan", "Georgia", "Armenia", "Azerbaijan",
-    "Jordan", "Oman", "UAE", "Israel", "Lebanon", "Turkey",
-  ],
-  "🌏 Oceania": [
-    "New Zealand", "Fiji", "Vanuatu", "Samoa", "Tonga", "Papua New Guinea",
-    "Solomon Islands", "Palau", "Micronesia", "Marshall Islands", "Kiribati",
-    "Tuvalu", "Cook Islands", "French Polynesia", "New Caledonia",
-  ],
-  "🌨️ Arctic / Antarctica": [
-    "Iceland", "Greenland", "Svalbard", "Faroe Islands", "Northern Norway",
-    "Northern Finland", "Northern Canada", "Alaska", "Antarctica",
-  ],
-};
+interface Destination {
+  name: string;
+  country: string;
+  emoji: string;
+  facts: string[];
+}
 
-const regionEmojis: Record<string, string> = {
-  "Japan": "⛩️", "Morocco": "🕌", "Peru": "🏔️", "Iceland": "🌋", "Tanzania": "🦁",
-  "Vietnam": "🍜", "Portugal": "🌊", "Colombia": "🌸", "Jordan": "🏺", "New Zealand": "🎿",
-  "Ethiopia": "☕", "Croatia": "💧", "Chile": "🏔️", "Georgia": "🍷", "Bhutan": "🏯",
-  "Montenegro": "🏖️", "Rwanda": "🦍", "Oman": "🏜️", "Bolivia": "🪞", "Slovenia": "🏔️",
-  "default": "📍",
-};
+const REGIONS = [
+  "🌍 Whole World",
+  "🇺🇸 United States",
+  "🌎 North America",
+  "🌎 South America",
+  "🌍 Europe",
+  "🌍 Africa",
+  "🌏 Asia",
+  "🌏 Oceania",
+  "🌨️ Arctic / Antarctica",
+];
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const region = searchParams.get("region") ?? "🌍 Whole World";
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+export function SpinTheGlobe() {
+  const [spinning, setSpinning] = useState(false);
+  const [destination, setDestination] = useState<Destination | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState("🌍 Whole World");
 
-  if (!apiKey) return NextResponse.json({ error: "No Google Maps API key" }, { status: 500 });
-
-  const countries = countriesByRegion[region] ?? countriesByRegion["🌍 Whole World"];
-  const country = countries[Math.floor(Math.random() * countries.length)];
-
-  try {
-    // Search for top tourist attractions in the country
-    const searchRes = await fetch(
-      `https://maps.googleapis.com/maps/api/place/textsearch/json?query=top+tourist+attractions+in+${encodeURIComponent(country)}&key=${apiKey}`
-    );
-    const searchData = await searchRes.json();
-    const results = searchData.results ?? [];
-
-    if (results.length < 3) {
-      return NextResponse.json({
-        name: country,
-        country,
-        emoji: regionEmojis[country] ?? regionEmojis["default"],
-        facts: [
-          "One of the world's most fascinating destinations.",
-          "Rich in culture, history, and natural beauty.",
-          "A must-visit for any serious traveler.",
-        ],
-      });
+  async function spin() {
+    setSpinning(true);
+    setDestination(null);
+    setAdded(false);
+    try {
+      const res = await fetch("/api/spin-globe?region=" + encodeURIComponent(selectedRegion));
+      const data = await res.json();
+      setDestination(data);
+    } catch (e) {
+      console.error(e);
     }
-
-    // Pick top 3 results
-    const top3 = results.slice(0, 3);
-    const facts = top3.map((place: any) => {
-      const rating = place.rating ? ` (rated ${place.rating}/5)` : "";
-      return `${place.name}${rating} — ${place.formatted_address?.split(",").slice(-2).join(",").trim() ?? country}`;
-    });
-
-    return NextResponse.json({
-      name: country,
-      country,
-      emoji: regionEmojis[country] ?? regionEmojis["default"],
-      facts,
-    });
-  } catch {
-    return NextResponse.json({
-      name: country,
-      country,
-      emoji: regionEmojis[country] ?? regionEmojis["default"],
-      facts: [
-        "One of the world's most fascinating destinations.",
-        "Rich in culture, history, and natural beauty.",
-        "A must-visit for any serious traveler.",
-      ],
-    });
+    setSpinning(false);
   }
+
+  async function addToMyWishlist() {
+    if (!destination) return;
+    setAdding(true);
+    await addToWishlist({
+      name: destination.name + ", " + destination.country,
+      type: "destination",
+      description: destination.facts.join(" • "),
+    });
+    setAdding(false);
+    setAdded(true);
+  }
+
+  return (
+    <div className="space-y-6 text-center">
+      <div className="space-y-1">
+        <h2 className="font-display text-xl font-semibold text-sky-700">Throw a Dart at a Spinning Globe 🌍</h2>
+        <p className="text-sm text-slate-500">Let fate decide your next adventure!</p>
+      </div>
+      <div className="flex flex-wrap gap-2 justify-center">
+        {REGIONS.map((region) => (
+          <button
+            key={region}
+            type="button"
+            onClick={() => setSelectedRegion(region)}
+            className={[
+              "rounded-full border px-3 py-1.5 text-xs font-medium transition",
+              selectedRegion === region
+                ? "border-sky-400 bg-sky-50 text-sky-700"
+                : "border-slate-200 text-slate-600 hover:border-sky-200",
+            ].join(" ")}
+          >
+            {region}
+          </button>
+        ))}
+      </div>
+      <button
+        type="button"
+        onClick={spin}
+        disabled={spinning}
+        className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-violet-500 shadow-lg text-6xl transition hover:scale-105 active:scale-95"
+      >
+        <span className={spinning ? "animate-spin inline-block" : ""}>🌍</span>
+      </button>
+      {spinning && (
+        <p className="text-sm text-slate-500 animate-pulse">Finding your next adventure...</p>
+      )}
+      {destination && !spinning && (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-4 text-left">
+          <div className="text-center space-y-1">
+            <p className="text-4xl">{destination.emoji}</p>
+            <h3 className="font-display text-xl font-bold text-slate-800">{destination.name}</h3>
+            <p className="text-sm text-slate-500">{destination.country}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-semibold text-sky-600 uppercase tracking-wide">Top 3 things to do</p>
+            {destination.facts.map((fact, i) => (
+              <div key={i} className="flex gap-2 text-sm text-slate-700">
+                <span className="font-bold text-sky-500">{i + 1}.</span>
+                <span>{fact}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button
+              type="button"
+              onClick={addToMyWishlist}
+              disabled={adding || added}
+              className="btn-primary text-sm flex-1"
+            >
+              {added ? "Added to wishlist ✓" : adding ? "Adding..." : "Add to wishlist 🌟"}
+            </button>
+            <button type="button" onClick={spin} className="btn-secondary text-sm">
+              Throw again
+            </button>
+          </div>
+        </div>
+      )}
+      {!destination && !spinning && (
+        <p className="text-sm text-slate-400">Tap the globe to discover your next destination!</p>
+      )}
+    </div>
+  );
 }
