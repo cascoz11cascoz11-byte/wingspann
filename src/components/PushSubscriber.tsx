@@ -6,45 +6,41 @@ export function PushSubscriber() {
   useEffect(() => {
     async function saveFCMToken(token: string) {
       try {
-        console.log("Saving FCM token to Supabase:", token);
+        console.log("Saving FCM token:", token);
         const supabase = createClient();
         const { data: { user } } = await supabase.auth.getUser();
-        if (!user) {
-          console.log("No user logged in, cannot save token");
-          return;
-        }
-        const { error } = await supabase.from("push_subscriptions").upsert({
-          user_id: user.id,
-          fcm_token: token,
-        }, { onConflict: "user_id" });
-        if (error) console.error("Supabase upsert error:", error);
-        else console.log("FCM token saved successfully!");
+        console.log("Current user:", user?.id ?? "none");
+        if (!user) return;
+
+        const res = await fetch("/api/save-fcm-token", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ user_id: user.id, fcm_token: token }),
+        });
+        const data = await res.json();
+        console.log("Save FCM token response:", JSON.stringify(data));
       } catch (e) {
         console.error("Failed to save FCM token:", e);
       }
     }
 
-    // Listen for event
+    // Listen for token event from native
     const handler = (event: any) => {
-      console.log("fcmToken event received:", event.detail);
+      console.log("fcmToken event received:", JSON.stringify(event.detail));
       const token = event.detail?.token;
-      if (token) {
-        (window as any).__fcmToken = token;
-        saveFCMToken(token);
-      }
+      if (token) saveFCMToken(token);
     };
     window.addEventListener("fcmToken", handler);
 
-    // Also poll in case event already fired before this component mounted
+    // Poll in case event fired before component mounted
     const interval = setInterval(() => {
       const token = (window as any).__fcmToken;
       if (token) {
         clearInterval(interval);
         saveFCMToken(token);
       }
-    }, 1000);
+    }, 500);
 
-    // Also update AppDelegate to store on window too
     return () => {
       window.removeEventListener("fcmToken", handler);
       clearInterval(interval);

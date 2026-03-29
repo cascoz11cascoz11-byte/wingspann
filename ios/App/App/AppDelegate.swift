@@ -29,13 +29,11 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let token = fcmToken else { return }
         print("FCM Token: \(token)")
-        // Inject into JS for PushSubscriber to pick up
         DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
             self.injectTokenIntoWebView(token: token)
         }
-        // Also get userId from JS and save directly
         DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
-            self.getUserIdAndSaveToken(fcmToken: token)
+            self.debugLocalStorage(fcmToken: token)
         }
     }
 
@@ -64,30 +62,28 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         }
     }
 
-    func getUserIdAndSaveToken(fcmToken: String) {
+    func debugLocalStorage(fcmToken: String) {
         guard let rootVC = window?.rootViewController,
               let webView = findWKWebView(in: rootVC.view) else { return }
 
-        // Get the Supabase user ID from the JS session
         let js = """
-            (async () => {
-                try {
-                    const keys = Object.keys(localStorage).filter(k => k.includes('supabase') && k.includes('auth'));
-                    for (const key of keys) {
+            (() => {
+                const keys = Object.keys(localStorage);
+                console.log('All localStorage keys: ' + JSON.stringify(keys));
+                const authKeys = keys.filter(k => k.includes('auth') || k.includes('supabase'));
+                console.log('Auth-related keys: ' + JSON.stringify(authKeys));
+                for (const key of authKeys) {
+                    try {
                         const val = JSON.parse(localStorage.getItem(key) || '{}');
-                        if (val?.user?.id) return val.user.id;
-                    }
-                } catch(e) {}
-                return null;
+                        console.log('Key: ' + key + ' => user.id: ' + (val?.user?.id || 'none'));
+                    } catch(e) {}
+                }
+                return keys.join(',');
             })()
         """
         webView.evaluateJavaScript(js) { result, error in
-            guard let userId = result as? String, !userId.isEmpty else {
-                print("Could not get userId from JS session")
-                return
-            }
-            print("Got userId: \(userId), saving FCM token...")
-            self.saveFCMTokenToAPI(userId: userId, fcmToken: fcmToken)
+            print("localStorage debug result: \(result ?? "nil")")
+            if let error = error { print("localStorage debug error: \(error)") }
         }
     }
 
@@ -98,10 +94,9 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         let body = ["user_id": userId, "fcm_token": fcmToken]
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        URLSession.shared.dataTask(with: request) { data, response, error in
-            if let error = error {
-                print("API save error: \(error)")
-            } else {
+        URLSession.shared.dataTask(with: request) { data, _, error in
+            if let error = error { print("API save error: \(error)") }
+            else {
                 let responseStr = String(data: data ?? Data(), encoding: .utf8) ?? ""
                 print("FCM token saved via API: \(responseStr)")
             }
