@@ -1,92 +1,96 @@
-import { NextResponse } from "next/server";
+"use client";
+import { useState } from "react";
+import { addToWishlist } from "@/lib/store";
 
-const regionCoordinates: Record<string, { lat: number; lng: number; radius: number }> = {
-  "🌍 Whole World":        { lat: 20,    lng: 0,     radius: 20000000 },
-  "🇺🇸 United States":    { lat: 39.5,  lng: -98.35, radius: 3000000 },
-  "🌎 North America":      { lat: 54,    lng: -105,   radius: 4000000 },
-  "🌎 South America":      { lat: -15,   lng: -60,    radius: 4000000 },
-  "🌍 Europe":             { lat: 54,    lng: 15,     radius: 3000000 },
-  "🌍 Africa":             { lat: 0,     lng: 25,     radius: 5000000 },
-  "🌏 Asia":               { lat: 34,    lng: 100,    radius: 5000000 },
-  "🌏 Oceania":            { lat: -25,   lng: 140,    radius: 4000000 },
-  "🌨️ Arctic / Antarctica": { lat: -82, lng: 0,      radius: 3000000 },
-};
+interface Destination {
+  name: string;
+  country: string;
+  emoji: string;
+  facts: string[];
+}
 
-const surprisingKeywords = [
-  "ancient ruins", "hidden waterfall", "volcanic island", "salt flats",
-  "canyon", "floating village", "cave temple", "glacier", "desert oasis",
-  "historic fortress", "underground city", "coral reef", "hot springs",
-  "fjord", "mysterious lake", "abandoned city", "fairy chimney",
-  "night market", "sacred mountain", "jungle temple",
+const REGIONS = [
+  "🌍 Whole World",
+  "🇺🇸 United States",
+  "🌎 North America",
+  "🌎 South America",
+  "🌍 Europe",
+  "🌍 Africa",
+  "🌏 Asia",
+  "🌏 Oceania",
+  "🌨️ Arctic / Antarctica",
 ];
 
-export async function GET(req: Request) {
-  const { searchParams } = new URL(req.url);
-  const region = searchParams.get("region") ?? "🌍 Whole World";
-  const coords = regionCoordinates[region] ?? regionCoordinates["🌍 Whole World"];
-  const apiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
+export function SpinTheGlobe() {
+  const [spinning, setSpinning] = useState(false);
+  const [destination, setDestination] = useState<Destination | null>(null);
+  const [adding, setAdding] = useState(false);
+  const [added, setAdded] = useState(false);
+  const [selectedRegion, setSelectedRegion] = useState("🌍 Whole World");
 
-  if (!apiKey) return NextResponse.json({ error: "No Google Maps API key" }, { status: 500 });
-
-  // Pick a random surprising keyword
-  const keyword = surprisingKeywords[Math.floor(Math.random() * surprisingKeywords.length)];
-
-  // Random offset within the region so we don't always get the same results
-  const latOffset = (Math.random() - 0.5) * 20;
-  const lngOffset = (Math.random() - 0.5) * 20;
-  const lat = coords.lat + latOffset;
-  const lng = coords.lng + lngOffset;
-
-  const url = `https://maps.googleapis.com/maps/api/place/nearbysearch/json?location=${lat},${lng}&radius=${Math.min(coords.radius, 500000)}&keyword=${encodeURIComponent(keyword)}&type=tourist_attraction&key=${apiKey}`;
-
-  const res = await fetch(url);
-  const data = await res.json();
-
-  const results = data.results ?? [];
-  if (results.length === 0) {
-    return NextResponse.json({ error: "No results found, try again!" }, { status: 404 });
+  async function spin() {
+    setSpinning(true);
+    setDestination(null);
+    setAdded(false);
+    const res = await fetch("/api/spin-globe?region=" + encodeURIComponent(selectedRegion));
+    const data = await res.json();
+      setSpinning(false);
   }
 
-  // Pick a random result from top 10
-  const place = results[Math.floor(Math.random() * Math.min(results.length, 10))];
+  async function addToMyWishlist() {
+    if (!destination) return;
+    setAdding(true);
+    await addToWishlist({
+      name: destination.name + ", " + destination.country,
+      type: "destination",
+      description: destination.facts.join(" • "),
+    });
+    setAdding(false);
+    setAdded(true);
+  }
 
-  // Get place details for more info
-  const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json?place_id=${place.place_id}&fields=name,formatted_address,editorial_summary,rating,user_ratings_total,types&key=${apiKey}`;
-  const detailsRes = await fetch(detailsUrl);
-  const detailsData = await detailsRes.json();
-  const details = detailsData.result ?? {};
-
-  const name = details.name ?? place.name;
-  const address = details.formatted_address ?? place.vicinity ?? "";
-  const country = address.split(",").pop()?.trim() ?? region;
-  const summary = details.editorial_summary?.overview ?? "";
-  const rating = details.rating ? `Rated ${details.rating}/5 by ${details.user_ratings_total?.toLocaleString()} visitors.` : "";
-  const types = (details.types ?? [])
-    .filter((t: string) => !["point_of_interest", "establishment"].includes(t))
-    .map((t: string) => t.replace(/_/g, " "))
-    .slice(0, 2)
-    .join(", ");
-
-  const facts = [
-    summary || `A ${keyword} destination in ${country}.`,
-    rating || `Known for ${types || "its unique character"}.`,
-    `Found in: ${address}`,
-  ].filter(Boolean).slice(0, 3);
-
-  const emojiMap: Record<string, string> = {
-    "ancient ruins": "🏛️", "hidden waterfall": "💧", "volcanic island": "🌋",
-    "salt flats": "🏜️", "canyon": "🏔️", "floating village": "🚣",
-    "cave temple": "⛩️", "glacier": "🧊", "desert oasis": "🌴",
-    "historic fortress": "🏰", "underground city": "🕳️", "coral reef": "🐠",
-    "hot springs": "♨️", "fjord": "🏔️", "mysterious lake": "🌊",
-    "abandoned city": "👻", "fairy chimney": "🍄", "night market": "🏮",
-    "sacred mountain": "⛰️", "jungle temple": "🌿",
-  };
-
-  return NextResponse.json({
-    name,
-    country,
-    emoji: emojiMap[keyword] ?? "📍",
-    facts,
-  });
+  return (
+    <div className="space-y-6 text-center">
+      <div className="space-y-1">
+        <h2 className="font-display text-xl font-semibold text-sky-700">Spin the Globe 🌍</h2>
+        <p className="text-sm text-slate-500">Let fate decide your next adventure!</p>
+      </div>
+      <div className="flex flex-wrap gap-2 justify-center">
+        {REGIONS.map((region) => (
+          <button key={region} type="button" onClick={() => setSelectedRegion(region)} className={"rounded-full border px-3 py-1.5 text-xs font-medium transition " + (selectedRegion === region ? "border-sky-400 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-600 hover:border-sky-200")}>
+            ion}
+          </button>
+        ))}
+      </div>
+      <button type="button" onClick={spin} disabled={spinning} className="mx-auto flex h-32 w-32 items-center justify-center rounded-full bg-gradient-to-br from-sky-400 to-violet-500 shadow-lg text-6xl transition hover:scale-105 active:scale-95">
+        <span className={spinning ? "animate-spin inline-block" : ""}>🌍</span>
+      </button>
+      {spinning && <p className="text-sm text-slate-500 animate-pulse">Finding your next adventure...</p>}
+      {destination && !spinning && (
+        <div className="rounded-2xl border border-slate-200 bg-white shadow-sm p-6 space-y-4 text-left">
+          <div className="text-center space-y-1">
+            <p className="text-4xl">{destination.emoji}</p>
+            <h3 className="font-display text-xl font-bold text-slate-800">{destination.name}</h3>
+            <p className="text-sm text-slate-500">{destination.country}</p>
+          </div>
+          <div className="space-y-2">
+            <p className="text-xs font-mibold text-sky-600 uppercase tracking-wide">Top 3 things to know</p>
+            {destination.facts.map((fact, i) => (
+              <div key={i} className="flex gap-2 text-sm text-slate-700">
+                <span className="font-bold text-sky-500">{i + 1}.</span>
+                <span>{fact}</span>
+              </div>
+            ))}
+          </div>
+          <div className="flex gap-2 pt-2">
+            <button type="button" onClick={addToMyWishlist} disabled={adding || added} className="btn-primary text-sm flex-1">
+              {added ? "Added to wishlist ✓" : adding ? "Adding..." : "Add to wishlist 🌟"}
+            </button>
+            <button type="button" onClick={spin} className="btn-secondary text-sm">Spin again</button>
+          </div>
+        </div>
+      )}
+      {!destination && !spinning && <p className="text-sm text-slate-400">Tap the globe to discover your next destination!</p>}
+    </div>
+  );
 }
