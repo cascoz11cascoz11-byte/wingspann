@@ -8,7 +8,6 @@ import WebKit
 class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUserNotificationCenterDelegate {
 
     var window: UIWindow?
-    var pendingFCMToken: String?
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         FirebaseApp.configure()
@@ -30,9 +29,13 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
         guard let token = fcmToken else { return }
         print("FCM Token: \(token)")
-        pendingFCMToken = token
+        // Inject into JS for PushSubscriber to pick up
         DispatchQueue.main.asyncAfter(deadline: .now() + 5.0) {
             self.injectTokenIntoWebView(token: token)
+        }
+        // Also get userId from JS and save directly
+        DispatchQueue.main.asyncAfter(deadline: .now() + 6.0) {
+            self.getUserIdAndSaveToken(fcmToken: token)
         }
     }
 
@@ -45,28 +48,64 @@ class AppDelegate: UIResponder, UIApplicationDelegate, MessagingDelegate, UNUser
     }
 
     func injectTokenIntoWebView(token: String) {
-        guard let rootVC = window?.rootViewController else {
+        guard let rootVC = window?.rootViewController,
+              let webView = findWKWebView(in: rootVC.view) else {
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { self.injectTokenIntoWebView(token: token) }
             return
         }
-        guard let webView = findWKWebView(in: rootVC.view) else {
-            print("WKWebView not found, retrying...")
-            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { self.injectTokenIntoWebView(token: token) }
-            return
-        }
-        // Store on window AND dispatch event
         let js = """
             window.__fcmToken = '\(token)';
             window.dispatchEvent(new CustomEvent('fcmToken', { detail: { token: '\(token)' } }));
             console.log('FCM token injected into window:', '\(token)');
         """
-        webView.evaluateJavaScript(js) { result, error in
-            if let error = error {
-                print("JS injection error: \(error)")
-            } else {
-                print("JS injection success!")
-            }
+        webView.evaluateJavaScript(js) { _, error in
+            if let error = error { print("JS injection error: \(error)") }
+            else { print("JS injection success!") }
         }
+    }
+
+    func getUserIdAndSaveToken(fcmToken: String) {
+        guard let rootVC = window?.rootViewController,
+              let webView = findWKWebView(in: rootVC.view) else { return }
+
+        // Get the Supabase user ID from the JS session
+        let js = """
+            (async () => {
+                try {
+                    const keys = Object.keys(localStorage).filter(k => k.includes('supabase') && k.includes('auth'));
+                    for (const key of keys) {
+                        const val = JSON.parse(localStorage.getItem(key) || '{}');
+                        if (val?.user?.id) return val.user.id;
+                    }
+                } catch(e) {}
+                return null;
+            })()
+        """
+        webView.evaluateJavaScript(js) { result, error in
+            guard let userId = result as? String, !userId.isEmpty else {
+                print("Could not get userId from JS session")
+                return
+            }
+            print("Got userId: \(userId), saving FCM token...")
+            self.saveFCMTokenToAPI(userId: userId, fcmToken: fcmToken)
+        }
+    }
+
+    func saveFCMTokenToAPI(userId: String, fcmToken: String) {
+        guard let url = URL(string: "https://wingspann.vercel.app/api/save-fcm-token") else { return }
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        let body = ["user_id": userId, "fcm_token": fcmToken]
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        URLSession.shared.dataTask(with: request) { data, response, error in
+            if let error = error {
+                print("API save error: \(error)")
+            } else {
+                let responseStr = String(data: data ?? Data(), encoding: .utf8) ?? ""
+                print("FCM token saved via API: \(responseStr)")
+            }
+        }.resume()
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
