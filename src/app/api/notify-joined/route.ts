@@ -9,10 +9,10 @@ export async function POST(req: Request) {
   const supabase = createClient(url, key);
 
   async function sendAPNSNotification(token: string, title: string, body: string) {
-    await fetch("https://wingspann.vercel.app/api/send-notification", {
+    await fetch("https://fycdopkefphgvzvqtccc.supabase.co/functions/v1/send-push", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ token, type: "join", tripName: title, activityName: body }),
+      body: JSON.stringify({ token, type: "join", tripName: title, activityName: body, sandbox: true }),
     });
   }
 
