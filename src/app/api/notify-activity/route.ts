@@ -1,7 +1,6 @@
+import { getFirebaseAccessToken } from "@/lib/firebase-token";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-
-const ONESIGNAL_APP_ID = "68f645ed-1d8f-4e5c-97bb-1548062edcd8";
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -10,29 +9,33 @@ function getSupabase() {
   return createClient(url, key);
 }
 
+async function sendFCMNotification(token: string, title: string, body: string, link: string) {
+  const res = await fetch("https://fcm.googleapis.com/v1/projects/wingspann-81463/messages:send", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + await getFirebaseAccessToken(),
+    },
+    body: JSON.stringify({
+      message: {
+        token,
+        notification: { title, body },
+        webpush: { fcm_options: { link: "https://wingspann.vercel.app" + link } },
+      },
+    }),
+  });
+  return res.ok;
+}
+
 export async function POST(req: Request) {
   try {
     const supabase = getSupabase();
-    if (!supabase) {
-      return NextResponse.json({ error: "Server not configured" }, { status: 500 });
-    }
-
-    const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
-    if (!ONESIGNAL_API_KEY) {
-      return NextResponse.json({ error: "OneSignal not configured" }, { status: 500 });
-    }
+    if (!supabase) return NextResponse.json({ error: "Server not configured" }, { status: 500 });
 
     const { tripId, activityTitle, addedByUserId } = await req.json();
-    if (!tripId || !activityTitle) {
-      return NextResponse.json({ error: "Missing fields" }, { status: 400 });
-    }
+    if (!tripId || !activityTitle) return NextResponse.json({ error: "Missing fields" }, { status: 400 });
 
-    const { data: trip } = await supabase
-      .from("trips")
-      .select("user_id, name, members(email)")
-      .eq("id", tripId)
-      .single();
-
+    const { data: trip } = await supabase.from("trips").select("user_id, name, members(email)").eq("id", tripId).single();
     if (!trip) return NextResponse.json({ error: "Trip not found" }, { status: 404 });
 
     const memberEmails = (trip.members ?? []).map((m: any) => m.email);
@@ -47,43 +50,19 @@ export async function POST(req: Request) {
     }
 
     const uniqueUserIds = allUserIds.filter((id, i, arr) => arr.indexOf(id) === i);
-    if (uniqueUserIds.length === 0) {
-      return NextResponse.json({ message: "No one to notify" });
-    }
+    if (uniqueUserIds.length === 0) return NextResponse.json({ message: "No one to notify" });
 
-    // Save to notifications table
+    const title = trip.name + " — new activity!";
+    const body = activityTitle + " was added to your trip.";
+    const link = "/trips/" + tripId;
+
     await supabase.from("notifications").insert(
-      uniqueUserIds.map((userId) => ({
-        user_id: userId,
-        type: "activity_added",
-        title: trip.name + " — new activity!",
-        body: activityTitle + " was added to your trip.",
-        link: "/trips/" + tripId,
-      }))
+      uniqueUserIds.map((userId) => ({ user_id: userId, type: "activity_added", title, body, link }))
     );
 
-    // Send push notification
-    const { data: subs } = await supabase
-      .from("push_subscriptions")
-      .select("player_id")
-      .in("user_id", uniqueUserIds);
-
+    const { data: subs } = await supabase.from("push_subscriptions").select("fcm_token").in("user_id", uniqueUserIds);
     if (subs && subs.length > 0) {
-      const playerIds = subs.map((s: any) => s.player_id);
-      await fetch("https://onesignal.com/api/v1/notifications", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Basic " + ONESIGNAL_API_KEY,
-        },
-        body: JSON.stringify({
-          app_id: ONESIGNAL_APP_ID,
-          include_player_ids: playerIds,
-          headings: { en: trip.name + " — new activity!" },
-          contents: { en: activityTitle + " was added to your trip." },
-          url: "https://wingspann.vercel.app/trips/" + tripId,
-        }),
-      });
+      await Promise.all(subs.map((s: any) => s.fcm_token && sendFCMNotification(s.fcm_token, title, body, link)));
     }
 
     return NextResponse.json({ message: "Notified", count: uniqueUserIds.length });

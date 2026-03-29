@@ -4,27 +4,46 @@ import { createClient } from "@/lib/supabase";
 
 export function PushSubscriber() {
   useEffect(() => {
-    async function registerPlayerId() {
+    async function registerFCMToken() {
       try {
+        const { Capacitor } = await import("@capacitor/core");
+        if (!Capacitor.isNativePlatform()) return;
+
+        // Listen for FCM token from native bridge
+        const { App } = await import("@capacitor/app");
+        
+        // Get token via custom plugin event or window
         const win = window as any;
-        if (!win.OneSignal) return;
-        win.OneSignalDeferred = win.OneSignalDeferred || [];
-        win.OneSignalDeferred.push(async (OneSignal: any) => {
-          const playerId = await OneSignal.User.PushSubscription.id;
-          if (!playerId) return;
-          const supabase = createClient();
-          const { data: { user } } = await supabase.auth.getUser();
-          if (!user) return;
-          await supabase.from("push_subscriptions").upsert({
-            user_id: user.id,
-            player_id: playerId,
-          }, { onConflict: "user_id,player_id" });
-        });
+        
+        // Poll for FCM token that AppDelegate posts
+        let attempts = 0;
+        const interval = setInterval(async () => {
+          attempts++;
+          const token = win.__fcmToken;
+          if (token) {
+            clearInterval(interval);
+            await saveFCMToken(token);
+          }
+          if (attempts > 20) clearInterval(interval);
+        }, 1000);
+
       } catch (e) {
-        console.error("Push subscription error:", e);
+        console.error("FCM registration error:", e);
       }
     }
-    setTimeout(registerPlayerId, 3000);
+
+    async function saveFCMToken(token: string) {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase.from("push_subscriptions").upsert({
+        user_id: user.id,
+        fcm_token: token,
+      }, { onConflict: "user_id" });
+      console.log("FCM token saved:", token);
+    }
+
+    registerFCMToken();
   }, []);
   return null;
 }

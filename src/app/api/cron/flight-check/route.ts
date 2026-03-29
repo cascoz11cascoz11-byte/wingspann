@@ -1,7 +1,6 @@
+import { getFirebaseAccessToken } from "@/lib/firebase-token";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
-
-const ONESIGNAL_APP_ID = "68f645ed-1d8f-4e5c-97bb-1548062edcd8";
 
 function getSupabase() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
@@ -10,16 +9,29 @@ function getSupabase() {
   return createClient(url, key);
 }
 
+async function sendFCMNotification(token: string, title: string, body: string, link: string) {
+  const res = await fetch("https://fcm.googleapis.com/v1/projects/wingspann-81463/messages:send", {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "Authorization": "Bearer " + await getFirebaseAccessToken(),
+    },
+    body: JSON.stringify({
+      message: {
+        token,
+        notification: { title, body },
+        webpush: { fcm_options: { link: "https://wingspann.vercel.app" + link } },
+      },
+    }),
+  });
+  return res.ok;
+}
+
 async function checkFlight(flightNumber: string, date: string) {
   try {
     const res = await fetch(
       "https://aerodatabox.p.rapidapi.com/flights/number/" + flightNumber + "/" + date,
-      {
-        headers: {
-          "x-rapidapi-host": "aerodatabox.p.rapidapi.com",
-          "x-rapidapi-key": process.env.RAPIDAPI_KEY!,
-        },
-      }
+      { headers: { "x-rapidapi-host": "aerodatabox.p.rapidapi.com", "x-rapidapi-key": process.env.RAPIDAPI_KEY! } }
     );
     if (!res.ok) return null;
     const data = await res.json();
@@ -29,40 +41,25 @@ async function checkFlight(flightNumber: string, date: string) {
 
 export async function GET(req: Request) {
   const authHeader = req.headers.get("authorization");
-  if (authHeader !== "Bearer " + process.env.CRON_SECRET) {
-    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  }
+  if (authHeader !== "Bearer " + process.env.CRON_SECRET) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
   const supabase = getSupabase();
-  if (!supabase) {
-    return NextResponse.json({ error: "Server not configured" }, { status: 500 });
-  }
-
-  const ONESIGNAL_API_KEY = process.env.ONESIGNAL_API_KEY;
-  if (!ONESIGNAL_API_KEY) {
-    return NextResponse.json({ error: "OneSignal not configured" }, { status: 500 });
-  }
+  if (!supabase) return NextResponse.json({ error: "Server not configured" }, { status: 500 });
 
   const today = new Date().toISOString().split("T")[0];
   const tomorrow = new Date(Date.now() + 86400000).toISOString().split("T")[0];
 
   const { data: flights } = await supabase
-    .from("activities")
-    .select("*, trips(user_id, name)")
-    .eq("travel_subtype", "flight")
-    .in("date", [today, tomorrow])
-    .not("flight_number", "is", null);
+    .from("activities").select("*, trips(user_id, name)")
+    .eq("travel_subtype", "flight").in("date", [today, tomorrow]).not("flight_number", "is", null);
 
-  if (!flights || flights.length === 0) {
-    return NextResponse.json({ message: "No flights to check" });
-  }
+  if (!flights || flights.length === 0) return NextResponse.json({ message: "No flights to check" });
 
   let notificationsSent = 0;
 
   for (const flight of flights) {
     const flightData = await checkFlight(flight.flight_number, flight.date);
     if (!flightData) continue;
-
     const status = flightData.status;
     if (status !== "Delayed" && status !== "Cancelled") continue;
 
@@ -71,38 +68,13 @@ export async function GET(req: Request) {
 
     const title = status === "Cancelled" ? "✈️ Flight Cancelled" : "✈️ Flight Delayed";
     const body = "Flight " + flight.flight_number + " on " + flight.date + " is " + status.toLowerCase() + ".";
+    const link = "/trips/" + flight.trip_id;
 
-    // Save to notifications table
-    await supabase.from("notifications").insert({
-      user_id: userId,
-      type: "flight_status",
-      title,
-      body,
-      link: "/trips/" + flight.trip_id,
-    });
+    await supabase.from("notifications").insert({ user_id: userId, type: "flight_status", title, body, link });
 
-    // Send push
-    const { data: subs } = await supabase
-      .from("push_subscriptions")
-      .select("player_id")
-      .eq("user_id", userId);
-
+    const { data: subs } = await supabase.from("push_subscriptions").select("fcm_token").eq("user_id", userId);
     if (subs && subs.length > 0) {
-      const playerIds = subs.map((s: any) => s.player_id);
-      await fetch("https://onesignal.com/api/v1/notifications", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": "Basic " + ONESIGNAL_API_KEY,
-        },
-        body: JSON.stringify({
-          app_id: ONESIGNAL_APP_ID,
-          include_player_ids: playerIds,
-          headings: { en: title },
-          contents: { en: body },
-          url: "https://wingspann.vercel.app/trips/" + flight.trip_id,
-        }),
-      });
+    Promise.all(subs.map((s: any) => s.fcm_token && sendFCMNotification(s.fcm_token, title, body, link)));
       notificationsSent++;
     }
   }
