@@ -6,6 +6,7 @@ import { Header } from "@/components/Header";
 import { PullToRefresh } from "@/components/PullToRefresh";
 import Script from "next/script";
 import { SplashScreen } from "@/components/SplashScreen";
+import { PushSubscriber } from "@/components/PushSubscriber";
 
 const outfit = Outfit({
   subsets: ["latin"],
