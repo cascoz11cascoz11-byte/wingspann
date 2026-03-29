@@ -1,62 +1,67 @@
 "use client";
 import { useEffect } from "react";
 import { createClient } from "@/lib/supabase";
+import { Capacitor } from "@capacitor/core";
+import { PushNotifications } from "@capacitor/push-notifications";
 
 export function PushSubscriber() {
   useEffect(() => {
+    if (Capacitor.getPlatform() !== "ios") return;
+
     const supabase = createClient();
 
-    async function saveFCMToken(token: string) {
-      const { data: { user } } = await supabase.auth.getUser();
-      console.log("Attempting save, user:", user?.id ?? "NOT LOGGED IN");
-      if (!user) return;
-      const res = await fetch("/api/save-fcm-token", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: user.id, fcm_token: token }),
-      });
-      const data = await res.json();
-      console.log("Save result:", JSON.stringify(data));
+    async function registerPush() {
+      // 1. Ask for permission
+      let permission = await PushNotifications.checkPermissions();
+      if (permission.receive === "prompt") {
+        permission = await PushNotifications.requestPermissions();
+      }
+      if (permission.receive !== "granted") {
+        console.warn("Push notifications not granted.");
+        return;
+      }
+
+      // 2. Register with Apple (APNs) — no Firebase needed
+      await PushNotifications.register();
     }
 
-    // Listen for token event from native
-    const handler = (event: any) => {
-      const token = event.detail?.token;
-      if (token) {
-        (window as any).__fcmToken = token;
-        saveFCMToken(token);
-      }
-    };
-    window.addEventListener("fcmToken", handler);
+    // 3. When Apple gives us a device token, save it to Supabase
+    const tokenSub = PushNotifications.addListener("registration", async (token) => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
 
-    // When auth state changes (user logs in), save any existing token
-    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
-      console.log("Auth state changed:", event, session?.user?.id);
-      if (event === "SIGNED_IN" || event === "INITIAL_SESSION") {
-        const token = (window as any).__fcmToken;
-        if (token && session?.user) {
-          console.log("User just signed in, saving FCM token...");
-          saveFCMToken(token);
-        }
-      }
+      await supabase.from("push_tokens").upsert({
+        user_id: user.id,
+        token: token.value,
+        platform: "ios",
+        updated_at: new Date().toISOString(),
+      }, { onConflict: "user_id" });
     });
 
-    // Poll for token
-    let attempts = 0;
-    const interval = setInterval(() => {
-      attempts++;
-      const token = (window as any).__fcmToken;
-      if (token) {
-        clearInterval(interval);
-        saveFCMToken(token);
-      }
-      if (attempts >= 60) clearInterval(interval);
-    }, 500);
+    // 4. Handle errors
+    const errorSub = PushNotifications.addListener("registrationError", (err) => {
+      console.error("Push registration error:", err);
+    });
+
+    // 5. Handle incoming notifications while app is open
+    const notifSub = PushNotifications.addListener("pushNotificationReceived", (notification) => {
+      console.log("Notification received:", notification);
+      // You can show an in-app alert here if you want
+    });
+
+    // 6. Handle tap on notification (app was in background)
+    const actionSub = PushNotifications.addListener("pushNotificationActionPerformed", (action) => {
+      console.log("Notification tapped:", action.notification);
+      // You can navigate to specific screens here based on action.notification.data
+    });
+
+    registerPush();
 
     return () => {
-      window.removeEventListener("fcmToken", handler);
-      subscription.unsubscribe();
-      clearInterval(interval);
+      tokenSub.then(s => s.remove());
+      errorSub.then(s => s.remove());
+      notifSub.then(s => s.remove());
+      actionSub.then(s => s.remove());
     };
   }, []);
 

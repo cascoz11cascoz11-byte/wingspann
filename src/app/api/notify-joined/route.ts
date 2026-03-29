@@ -1,4 +1,3 @@
-import { getFirebaseAccessToken } from "@/lib/firebase-token";
 import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 
@@ -7,22 +6,12 @@ const supabase = createClient(
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-async function sendFCMNotification(token: string, title: string, body: string, link: string) {
-  const res = await fetch("https://fcm.googleapis.com/v1/projects/wingspann-81463/messages:send", {
+async function sendAPNSNotification(token: string, title: string, body: string) {
+  await fetch("https://wingspann.vercel.app/api/send-notification", {
     method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-      "Authorization": "Bearer " + await getFirebaseAccessToken(),
-    },
-    body: JSON.stringify({
-      message: {
-        token,
-        notification: { title, body },
-        webpush: { fcm_options: { link: "https://wingspann.vercel.app" + link } },
-      },
-    }),
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ token, type: "join", tripName: title, activityName: body }),
   });
-  return res.ok;
 }
 
 export async function POST(req: Request) {
@@ -42,9 +31,9 @@ export async function POST(req: Request) {
 
     await supabase.from("notifications").insert({ user_id: ownerId, type: "member_joined", title, body, link });
 
-    const { data: subs } = await supabase.from("push_subscriptions").select("fcm_token").eq("user_id", ownerId);
+    const { data: subs } = await supabase.from("push_tokens").select("token").eq("user_id", ownerId);
     if (subs && subs.length > 0) {
-      await Promise.all(subs.map((s: any) => s.fcm_token && sendFCMNotification(s.fcm_token, title, body, link)));
+      await Promise.all(subs.map((s: any) => s.token && sendAPNSNotification(s.token, title, body)));
     }
 
     return NextResponse.json({ message: "Notified" });
