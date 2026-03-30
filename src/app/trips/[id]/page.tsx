@@ -14,7 +14,7 @@ import { CarOrganizer } from "@/components/CarOrganizer";
 import { ActivityFinder } from "@/components/ActivityFinder";
 import { ExpenseTracker } from "@/components/ExpenseTracker";
 import { MapTab } from "@/components/MapTab";
-import { PhotoCircleLink } from "@/components/PhotoCircleLink";
+import PhotoCircleLink from "@/components/PhotoCircleLink";
 
 function formatDateRange(start: string, end: string) {
   const s = new Date(start + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -121,8 +121,8 @@ export default function TripDetailPage() {
             </span>
             {trip.description && <p className="mt-2 text-slate-600">{trip.description}</p>}
           </div>
-          <div className="flex gap-2">
-            <button onClick={copyInviteLink} className="btn-secondary text-sm flex-1">
+          <div className="flex flex-col gap-2">
+            <button onClick={copyInviteLink} className="btn-secondary text-sm w-full">
               {copied ? "Copied!" : "Copy invite link"}
             </button>
             <PhotoCircleLink tripName={trip.name} />
