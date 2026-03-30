@@ -111,8 +111,8 @@ export default function TripDetailPage() {
       </div>
 
       <div className="mb-6 space-y-3">
-        <div className="flex items-start justify-between gap-4">
-          <div className="flex-1">
+        <div className="flex flex-col gap-3">
+          <div>
             <h1 className="font-display text-2xl font-semibold text-sky-700">{trip.name}</h1>
             <p className="mt-1 text-slate-600">{trip.destination}</p>
             <p className="mt-1 text-sm text-slate-500">{formatDateRange(trip.startDate, trip.endDate)}</p>
@@ -121,8 +121,8 @@ export default function TripDetailPage() {
             </span>
             {trip.description && <p className="mt-2 text-slate-600">{trip.description}</p>}
           </div>
-          <div className="flex flex-col gap-2 shrink-0">
-            <button onClick={copyInviteLink} className="btn-secondary text-sm">
+          <div className="flex gap-2">
+            <button onClick={copyInviteLink} className="btn-secondary text-sm flex-1">
               {copied ? "Copied!" : "Copy invite link"}
             </button>
             <PhotoCircleLink tripName={trip.name} />

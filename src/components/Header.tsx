@@ -52,8 +52,10 @@ export function Header() {
   return (
     <header
       className="fixed left-0 right-0 top-0 z-50 w-full border-b-2 border-sky-100 bg-white shadow-sm shadow-sky-100/50"
-      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
     >
+      {/* Safe area spacer — only fills the notch, not part of the visible header bar */}
+      <div style={{ height: "env(safe-area-inset-top, 0px)" }} />
+
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <Link href="/">
@@ -64,7 +66,11 @@ export function Header() {
             onClick={handleRefresh}
             aria-label="Refresh"
             className="text-slate-400 hover:text-sky-500 transition-colors text-xl leading-none"
-            style={{ display: "inline-block", transform: spinning ? "rotate(360deg)" : "rotate(0deg)", transition: "transform 0.3s ease" }}
+            style={{
+              display: "inline-block",
+              transform: spinning ? "rotate(360deg)" : "rotate(0deg)",
+              transition: "transform 0.3s ease",
+            }}
           >
             ↻
           </button>

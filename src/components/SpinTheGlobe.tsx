@@ -1,6 +1,8 @@
 "use client";
 import { useState } from "react";
-import { addToWishlist } from "@/lib/store";
+import { addToWishlist, getTrips, addActivity } from "@/lib/store";
+import type { Trip } from "@/types";
+import Link from "next/link";
 
 interface Destination {
   name: string;
@@ -28,10 +30,17 @@ export function SpinTheGlobe() {
   const [added, setAdded] = useState(false);
   const [selectedRegion, setSelectedRegion] = useState("🌍 Whole World");
 
+  const [trips, setTrips] = useState<Trip[]>([]);
+  const [tripPickerOpen, setTripPickerOpen] = useState(false);
+  const [addingToTripId, setAddingToTripId] = useState<string | null>(null);
+  const [addedToTrip, setAddedToTrip] = useState(false);
+
   async function spin() {
     setSpinning(true);
     setDestination(null);
     setAdded(false);
+    setTripPickerOpen(false);
+    setAddedToTrip(false);
     try {
       const res = await fetch("/api/spin-globe?region=" + encodeURIComponent(selectedRegion));
       const data = await res.json();
@@ -52,6 +61,28 @@ export function SpinTheGlobe() {
     });
     setAdding(false);
     setAdded(true);
+  }
+
+  async function openTripPicker() {
+    const all = await getTrips();
+    setTrips(all);
+    setTripPickerOpen(true);
+  }
+
+  async function handleAddToTrip(tripId: string) {
+    if (!destination) return;
+    setAddingToTripId(tripId);
+    const trip = trips.find((t) => t.id === tripId);
+    if (!trip) return;
+    await addActivity(tripId, {
+      title: destination.name + ", " + destination.country,
+      description: destination.facts.join(" • "),
+      date: trip.startDate,
+      type: "event",
+    });
+    setAddingToTripId(null);
+    setTripPickerOpen(false);
+    setAddedToTrip(true);
   }
 
   return (
@@ -113,10 +144,54 @@ export function SpinTheGlobe() {
             >
               {added ? "Added to wishlist ✓" : adding ? "Adding..." : "Add to wishlist 🌟"}
             </button>
-            <button type="button" onClick={spin} className="btn-secondary text-sm">
-              Throw again
+            <button
+              type="button"
+              onClick={openTripPicker}
+              disabled={addedToTrip}
+              className="btn-secondary text-sm flex-1"
+            >
+              {addedToTrip ? "Added to trip ✓" : "+ Add to trip"}
             </button>
           </div>
+
+          {tripPickerOpen && (
+            <div className="rounded-xl border-2 border-sky-100 bg-sky-50 p-3 space-y-2">
+              <p className="text-xs font-medium text-sky-700">Which trip?</p>
+              {trips.length === 0 ? (
+                <p className="text-xs text-slate-400">
+                  No trips yet —{" "}
+                  <Link href="/trips/new" className="text-sky-500 hover:underline">
+                    create one first
+                  </Link>
+                </p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {trips.map((trip) => (
+                    <button
+                      key={trip.id}
+                      type="button"
+                      onClick={() => handleAddToTrip(trip.id)}
+                      disabled={addingToTripId === trip.id}
+                      className="rounded-lg bg-white border border-sky-200 px-3 py-1.5 text-xs font-medium text-sky-700 hover:bg-sky-100 transition"
+                    >
+                      {addingToTripId === trip.id ? "Adding..." : trip.name}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button
+                type="button"
+                onClick={() => setTripPickerOpen(false)}
+                className="text-xs text-slate-400 hover:text-slate-600"
+              >
+                Cancel
+              </button>
+            </div>
+          )}
+
+          <button type="button" onClick={spin} className="btn-secondary text-sm w-full">
+            Throw again
+          </button>
         </div>
       )}
       {!destination && !spinning && (
