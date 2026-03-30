@@ -124,7 +124,9 @@ export function SpinTheGlobe() {
           <div className="text-center space-y-1">
             <p className="text-4xl">{destination.emoji}</p>
             <h3 className="font-display text-xl font-bold text-slate-800">{destination.name}</h3>
-            <p className="text-sm text-slate-500">{destination.country}</p>
+{destination.country !== destination.name && (
+  <p className="text-sm text-slate-500">{destination.country}</p>
+)}
           </div>
           <div className="space-y-2">
             <p className="text-xs font-semibold text-sky-600 uppercase tracking-wide">Top 3 things to do</p>
