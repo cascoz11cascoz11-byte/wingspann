@@ -131,8 +131,9 @@ export default function TripDetailPage() {
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-sky-400 via-violet-400 to-pink-400" />
         )}
-        {/* Dark overlay */}
-        <div className="absolute inset-0 bg-black/40" />
+        {/* Overlay */}
+<div className="absolute inset-0 bg-black/30" />
+<div className="absolute inset-0 bg-sky-900/40 [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_75%)]" />
 
         {/* Top bar */}
         <div className="relative z-10 flex items-center justify-between px-4 pt-4">
@@ -153,9 +154,9 @@ export default function TripDetailPage() {
           <span className={"inline-block rounded-full px-3 py-1 text-xs font-semibold " + countdown.color}>
             {countdown.label}
           </span>
-          <h1 className="font-display text-3xl font-bold text-white drop-shadow-lg italic leading-tight">
-            {trip.name}
-          </h1>
+          <h1 className="font-display text-3xl font-bold text-white drop-shadow-lg leading-tight">
+  {trip.name}
+</h1>
           <p className="text-white/90 font-medium">{trip.destination}</p>
           <p className="text-white/70 text-sm">{formatDateRange(trip.startDate, trip.endDate)}</p>
           {trip.description && <p className="text-white/70 text-sm max-w-sm">{trip.description}</p>}
