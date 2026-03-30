@@ -172,8 +172,8 @@ export default function WishlistPage() {
           🗺️ Shared Boards
         </button>
         <button type="button" onClick={() => setTab("globe")} className={tab === "globe" ? activeTab : inactiveTab}>
-  🎯 Throw a Dart
-</button>
+          🎯 Throw a Dart
+        </button>
       </div>
 
       {tab === "personal" && (
@@ -226,11 +226,13 @@ export default function WishlistPage() {
                               <p className="text-xs text-slate-300">Added {formatDate(item.createdAt)}</p>
                             </div>
                             <div className="flex flex-col gap-2 shrink-0">
-                              {item.type !== "destination" && (
-                                <button type="button" onClick={() => setAddingTrip(addingTrip?.itemId === item.id ? null : { itemId: item.id })} className="rounded-xl px-3 py-1.5 text-xs font-medium btn-primary">
-                                  + Add to trip
-                                </button>
-                              )}
+                              <button
+                                type="button"
+                                onClick={() => setAddingTrip(addingTrip?.itemId === item.id ? null : { itemId: item.id })}
+                                className="rounded-xl px-3 py-1.5 text-xs font-medium btn-primary"
+                              >
+                                + Add to trip
+                              </button>
                               {item.link && (
                                 <a href={item.link} target="_blank" rel="noopener noreferrer" className="rounded-xl px-3 py-1.5 text-xs font-medium border border-slate-200 text-slate-600 hover:border-sky-300 hover:text-sky-600 transition text-center">
                                   Details
