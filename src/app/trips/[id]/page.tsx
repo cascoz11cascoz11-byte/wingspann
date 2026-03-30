@@ -85,11 +85,11 @@ export default function TripDetailPage() {
       const ext = file.name.split(".").pop();
       const path = `${trip.id}/cover.${ext}`;
       const { error: uploadError } = await supabase.storage
-        .from("TRIP_IMAGE")
+        .from("trip_image")
         .upload(path, file, { upsert: true });
       if (uploadError) throw uploadError;
       const { data: { publicUrl } } = supabase.storage
-        .from("TRIP_IMAGE")
+        .from("trip_image")
         .getPublicUrl(path);
       await updateTrip(trip.id, { coverImage: publicUrl });
       await refreshTrip();
