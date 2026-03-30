@@ -1,8 +1,8 @@
 "use client";
 
 import { useParams, useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getTrip, deleteTrip } from "@/lib/store";
+import { useEffect, useRef, useState } from "react";
+import { getTrip, deleteTrip, updateTrip } from "@/lib/store";
 import type { Trip, Activity } from "@/types";
 import Link from "next/link";
 import { InviteMember } from "@/components/InviteMember";
@@ -15,6 +15,7 @@ import { ActivityFinder } from "@/components/ActivityFinder";
 import { ExpenseTracker } from "@/components/ExpenseTracker";
 import { MapTab } from "@/components/MapTab";
 import PhotoCircleLink from "@/components/PhotoCircleLink";
+import { createClient } from "@/lib/supabase";
 
 function formatDateRange(start: string, end: string) {
   const s = new Date(start + "T12:00:00").toLocaleDateString("en-US", { month: "short", day: "numeric" });
@@ -30,7 +31,7 @@ function getCountdown(startDate: string, endDate: string): { label: string; colo
   const start = new Date(sy, sm - 1, sd);
   const end = new Date(ey, em - 1, ed);
   if (today > end) return { label: "Past trip", color: "bg-slate-100 text-slate-400" };
-  if (today >= start && today <= end) return { label: "Happening now!", color: "bg-emerald-100 text-emerald-700" };
+  if (today >= start && today <= end) return { label: "Happening now! 🎉", color: "bg-emerald-100 text-emerald-700" };
   const days = Math.round((start.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
   if (days === 1) return { label: "Tomorrow!", color: "bg-amber-100 text-amber-700" };
   if (days <= 7) return { label: "In " + days + " days!", color: "bg-amber-100 text-amber-700" };
@@ -47,6 +48,8 @@ export default function TripDetailPage() {
   const [activeTab, setActiveTab] = useState<"itinerary" | "expenses" | "map">("itinerary");
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function load() {
@@ -73,6 +76,29 @@ export default function TripDetailPage() {
     setTimeout(() => setCopied(false), 2000);
   }
 
+  async function handlePhotoUpload(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file || !trip) return;
+    setUploadingPhoto(true);
+    try {
+      const supabase = createClient();
+      const ext = file.name.split(".").pop();
+      const path = `${trip.id}/cover.${ext}`;
+      const { error: uploadError } = await supabase.storage
+        .from("trip-images")
+        .upload(path, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage
+        .from("trip-images")
+        .getPublicUrl(path);
+      await updateTrip(trip.id, { coverImage: publicUrl });
+      await refreshTrip();
+    } catch (err) {
+      console.error(err);
+    }
+    setUploadingPhoto(false);
+  }
+
   async function handleDelete() {
     setDeleting(true);
     await deleteTrip(id);
@@ -97,37 +123,62 @@ export default function TripDetailPage() {
 
   return (
     <div>
-      <div className="flex items-center justify-between mb-6">
-        <Link href="/?tab=trips" className="text-sm text-slate-600 hover:text-sky-600">
-          Back to trips
-        </Link>
-        <button
-          type="button"
-          onClick={() => setShowDeleteConfirm(true)}
-          className="text-xs text-red-400 hover:text-red-600 transition"
-        >
-          Delete trip
-        </button>
+      {/* Hero */}
+      <div className="relative -mx-4 sm:-mx-6 lg:-mx-8 mb-6 overflow-hidden" style={{ minHeight: 280 }}>
+        {/* Background */}
+        {trip.coverImage ? (
+          <img src={trip.coverImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-sky-400 via-violet-400 to-pink-400" />
+        )}
+        {/* Dark overlay */}
+        <div className="absolute inset-0 bg-black/40" />
+
+        {/* Top bar */}
+        <div className="relative z-10 flex items-center justify-between px-4 pt-4">
+          <Link href="/?tab=trips" className="flex items-center justify-center w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm hover:bg-white/30 transition">
+            ←
+          </Link>
+          <button
+            type="button"
+            onClick={() => setShowDeleteConfirm(true)}
+            className="text-xs text-white/70 hover:text-red-300 transition"
+          >
+            Delete trip
+          </button>
+        </div>
+
+        {/* Hero content */}
+        <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 py-10 space-y-3">
+          <span className={"inline-block rounded-full px-3 py-1 text-xs font-semibold " + countdown.color}>
+            {countdown.label}
+          </span>
+          <h1 className="font-display text-3xl font-bold text-white drop-shadow-lg italic leading-tight">
+            {trip.name}
+          </h1>
+          <p className="text-white/90 font-medium">{trip.destination}</p>
+          <p className="text-white/70 text-sm">{formatDateRange(trip.startDate, trip.endDate)}</p>
+          {trip.description && <p className="text-white/70 text-sm max-w-sm">{trip.description}</p>}
+
+          {/* Photo upload button */}
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            disabled={uploadingPhoto}
+            className="mt-2 flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 px-3 py-1.5 text-xs text-white hover:bg-white/30 transition"
+          >
+            {uploadingPhoto ? "Uploading..." : trip.coverImage ? "✏️ Change photo" : "📷 Add cover photo"}
+          </button>
+          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+        </div>
       </div>
 
-      <div className="mb-6 space-y-3">
-        <div className="flex flex-col gap-3">
-          <div>
-            <h1 className="font-display text-2xl font-semibold text-sky-700">{trip.name}</h1>
-            <p className="mt-1 text-slate-600">{trip.destination}</p>
-            <p className="mt-1 text-sm text-slate-500">{formatDateRange(trip.startDate, trip.endDate)}</p>
-            <span className={"mt-2 inline-block rounded-full px-2.5 py-0.5 text-xs font-medium " + countdown.color}>
-              {countdown.label}
-            </span>
-            {trip.description && <p className="mt-2 text-slate-600">{trip.description}</p>}
-          </div>
-          <div className="flex flex-col gap-2">
-            <button onClick={copyInviteLink} className="btn-secondary text-sm w-full">
-              {copied ? "Copied!" : "Copy invite link"}
-            </button>
-            <PhotoCircleLink tripName={trip.name} />
-          </div>
-        </div>
+      {/* Invite buttons */}
+      <div className="flex flex-col gap-2 mb-6">
+        <button onClick={copyInviteLink} className="btn-secondary text-sm w-full">
+          {copied ? "Copied!" : "Copy invite link"}
+        </button>
+        <PhotoCircleLink tripName={trip.name} />
       </div>
 
       <div className="flex gap-6 border-b border-slate-200 mb-6 overflow-x-auto">

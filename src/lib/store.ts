@@ -674,3 +674,7 @@ function mapNotification(data: any): AppNotification {
     createdAt: data.created_at,
   };
 }
+export async function updateTrip(id: string, updates: { coverImage?: string }): Promise<boolean> {
+  const { error } = await db().from("trips").update({ cover_image: updates.coverImage }).eq("id", id);
+  return !error;
+}
