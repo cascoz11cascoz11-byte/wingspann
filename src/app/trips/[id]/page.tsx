@@ -192,7 +192,7 @@ export default function TripDetailPage() {
       {activeTab === "itinerary" && (
         <div className="space-y-10">
           <section>
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-4 space-y-3">
               <button
                 type="button"
                 onClick={() => setMembersCollapsed((c) => !c)}
