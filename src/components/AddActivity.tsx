@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { addActivity, getWishlist, getBoardItemsById } from "@/lib/store";
 import type { WishlistItem } from "@/lib/store";
 import type { Activity } from "@/types";
@@ -49,6 +49,85 @@ function isOutsideTripDates(dateStr: string, start: string, end: string): boolea
   return dateStr < start || dateStr > end;
 }
 
+// --- Places Autocomplete Hook ---
+function usePlacesAutocomplete(value: string, enabled: boolean) {
+  const [suggestions, setSuggestions] = useState<{ place_id: string; description: string }[]>([]);
+  const debounceRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    if (!enabled || value.length < 2) { setSuggestions([]); return; }
+    if (debounceRef.current) clearTimeout(debounceRef.current);
+    debounceRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch("/api/places-autocomplete?input=" + encodeURIComponent(value));
+        const data = await res.json();
+        setSuggestions(data.predictions ?? []);
+      } catch {
+        setSuggestions([]);
+      }
+    }, 300);
+    return () => { if (debounceRef.current) clearTimeout(debounceRef.current); };
+  }, [value, enabled]);
+
+  return { suggestions, clearSuggestions: () => setSuggestions([]) };
+}
+
+// --- Location Input Component ---
+function LocationInput({ value, onChange, placeholder, label, required }: {
+  value: string;
+  onChange: (val: string) => void;
+  placeholder: string;
+  label: string;
+  required?: boolean;
+}) {
+  const [focused, setFocused] = useState(false);
+  const { suggestions, clearSuggestions } = usePlacesAutocomplete(value, focused);
+  const wrapperRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(e.target as Node)) {
+        clearSuggestions();
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, []);
+
+  return (
+    <div ref={wrapperRef} className="relative">
+      <label className="block text-sm font-medium text-slate-700">{label}</label>
+      <input
+        type="text"
+        className="input mt-1"
+        placeholder={placeholder}
+        value={value}
+        required={required}
+        onChange={(e) => onChange(e.target.value)}
+        onFocus={() => setFocused(true)}
+        onBlur={() => setTimeout(() => setFocused(false), 150)}
+      />
+      {suggestions.length > 0 && (
+        <div className="absolute z-50 left-0 right-0 mt-1 bg-white border border-slate-200 rounded-xl shadow-lg overflow-hidden">
+          {suggestions.map((s) => (
+            <button
+              key={s.place_id}
+              type="button"
+              onMouseDown={() => {
+                onChange(s.description);
+                clearSuggestions();
+              }}
+              className="w-full text-left px-4 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-700 transition border-b border-slate-100 last:border-0"
+            >
+              📍 {s.description}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 type Tab = "new" | "wishlist";
 
 export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId, onAdded }: AddActivityProps) {
@@ -82,7 +161,6 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
 
   const tripDates = getTripDates(tripStartDate, tripEndDate);
 
-  // Check date warning whenever date changes
   useEffect(() => {
     if (!date) { setDateWarning(""); return; }
     if (isOutsideTripDates(date, tripStartDate, tripEndDate)) {
@@ -92,7 +170,6 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
     }
   }, [date, tripStartDate, tripEndDate]);
 
-  // Check checkout date warning
   const checkOutWarning = checkOutDate && isOutsideTripDates(checkOutDate, tripStartDate, tripEndDate)
     ? "⚠️ Check-out is outside the trip dates"
     : "";
@@ -259,14 +336,20 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
 
                 {type === "travel" && (travelSubtype === "drive" || travelSubtype === "flight") && (
                   <>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">{travelSubtype === "drive" ? "Departing from" : "Departure airport"}</label>
-                      <input type="text" className="input mt-1" placeholder={travelSubtype === "drive" ? "e.g. Charlotte, NC" : "e.g. CLT - Charlotte"} value={departureLocation} onChange={(e) => setDepartureLocation(e.target.value)} required />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">{travelSubtype === "drive" ? "Arriving at" : "Arrival airport"}</label>
-                      <input type="text" className="input mt-1" placeholder={travelSubtype === "drive" ? "e.g. Outer Banks, NC" : "e.g. ORF - Norfolk"} value={arrivalLocation} onChange={(e) => setArrivalLocation(e.target.value)} required />
-                    </div>
+                    <LocationInput
+                      label={travelSubtype === "drive" ? "Departing from" : "Departure airport"}
+                      placeholder={travelSubtype === "drive" ? "e.g. Charlotte, NC" : "e.g. CLT - Charlotte"}
+                      value={departureLocation}
+                      onChange={setDepartureLocation}
+                      required
+                    />
+                    <LocationInput
+                      label={travelSubtype === "drive" ? "Arriving at" : "Arrival airport"}
+                      placeholder={travelSubtype === "drive" ? "e.g. Outer Banks, NC" : "e.g. ORF - Norfolk"}
+                      value={arrivalLocation}
+                      onChange={setArrivalLocation}
+                      required
+                    />
                     {travelSubtype === "drive" && (
                       <div className="rounded-xl bg-sky-50 px-4 py-3 text-sm text-sky-700">
                         {calculatingDrive ? "Calculating drive time..." : driveTime ? "Est. drive time: " + driveTime : "Enter locations above to calculate drive time"}
@@ -291,10 +374,12 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
                       <label className="block text-sm font-medium text-slate-700">Name</label>
                       <input type="text" className="input mt-1" placeholder="e.g. Beach House, Airbnb Santiago" value={title} onChange={(e) => setTitle(e.target.value)} required />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">Location</label>
-                      <input type="text" className="input mt-1" placeholder="e.g. Santiago, Chile" value={location} onChange={(e) => setLocation(e.target.value)} />
-                    </div>
+                    <LocationInput
+                      label="Location"
+                      placeholder="e.g. Santiago, Chile"
+                      value={location}
+                      onChange={setLocation}
+                    />
                     <div className="grid grid-cols-2 gap-4">
                       <div>
                         <label className="block text-sm font-medium text-slate-700">Check in</label>
@@ -335,10 +420,12 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
                         <input type="time" className="input mt-1" value={endTime} onChange={(e) => setEndTime(e.target.value)} />
                       </div>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium text-slate-700">Location (optional)</label>
-                      <input type="text" className="input mt-1" placeholder="e.g. Gulf Shores, AL" value={location} onChange={(e) => setLocation(e.target.value)} />
-                    </div>
+                    <LocationInput
+                      label="Location (optional)"
+                      placeholder="e.g. Gulf Shores, AL"
+                      value={location}
+                      onChange={setLocation}
+                    />
                   </>
                 )}
 
