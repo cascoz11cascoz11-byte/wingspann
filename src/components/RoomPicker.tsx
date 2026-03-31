@@ -81,7 +81,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
     const stack = getStackPosition();
 
     // Generate new random order
-    const newOrder = shuffle([...Array(total).keys()]);
+    const newOrder = shuffle(Array.from({ length: total }, (_, i) => i));
     setShuffledOrder(newOrder);
 
     // Reset all card flips and remove medals before starting
