@@ -57,7 +57,7 @@ async function searchGooglePlaces(query: string, lat: number, lng: number, categ
         date: p.opening_hours ? (p.opening_hours.open_now ? "Open now" : "Check hours") : "See details",
         venue: p.formatted_address,
         price: p.price_level ? "$".repeat(p.price_level) : undefined,
-        link: `https://www.google.com/maps/place/?q=place_id:${p.place_id}`,
+        link: `https://maps.google.com/?q=${encodeURIComponent(p.name)}&query_place_id=${p.place_id}`,
         miles,
         distance: formatDistance(miles),
       };
