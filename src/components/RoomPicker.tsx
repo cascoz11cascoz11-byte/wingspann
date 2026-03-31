@@ -85,22 +85,22 @@ export function RoomPicker({ members }: RoomPickerProps) {
       },
     });
 
-    // 🃏 Initial stack at top-right
+    // 🃏 Initial stack in CENTER
     tl.to(cards, {
-      x: () => stack.x + gsap.utils.random(-4, 4),
-      y: (_, i) => stack.y - (total - i) * 2,
+      x: () => gsap.utils.random(-4, 4),
+      y: (_, i) => -(total - i) * 2,
       rotation: () => gsap.utils.random(-4, 4),
       scale: 1,
       stagger: { each: 0.03, from: "end" },
     });
 
-    // 🔀 Shuffle passes
+    // 🔀 Shuffle passes in CENTER
     for (let i = 0; i < 4; i++) {
       const speed = 0.5 - i * 0.08;
 
       tl.to(cards, {
-        x: () => stack.x + gsap.utils.random(-140, 140),
-        y: () => stack.y + gsap.utils.random(-60, 40),
+        x: () => gsap.utils.random(-140, 140),
+        y: () => gsap.utils.random(-60, 40),
         rotation: () => gsap.utils.random(-25, 25),
         scale: 0.96,
         duration: speed,
@@ -108,14 +108,24 @@ export function RoomPicker({ members }: RoomPickerProps) {
       });
 
       tl.to(cards, {
-        x: () => stack.x + gsap.utils.random(-6, 6),
-        y: (_, i) => stack.y - (total - i) * 2,
+        x: () => gsap.utils.random(-6, 6),
+        y: (_, i) => -(total - i) * 2,
         rotation: () => gsap.utils.random(-6, 6),
         scale: 1,
         duration: speed * 0.9,
         stagger: { each: 0.03, from: "end" },
       });
     }
+
+    // ➡️ Slide full stack to top-right
+    tl.to(cards, {
+      x: stack.x,
+      y: (_, i) => stack.y - (total - i) * 2,
+      rotation: () => gsap.utils.random(-4, 4),
+      duration: 0.4,
+      ease: "power2.inOut",
+      stagger: { each: 0.02, from: "end" },
+    });
 
     // 🃏 Deal cards to grid positions
     cards.forEach((card, i) => {
