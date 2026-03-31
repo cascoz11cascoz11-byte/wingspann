@@ -21,6 +21,7 @@ const COLS = 4;
 export function RoomPicker({ members }: RoomPickerProps) {
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<"idle" | "animating" | "done">("idle");
+  const [shuffledOrder, setShuffledOrder] = useState<number[]>([]);
 
   const cardRefs = useRef<HTMLDivElement[]>([]);
   const running = useRef(false);
@@ -28,21 +29,26 @@ export function RoomPicker({ members }: RoomPickerProps) {
   const accepted = members.filter((m) => m.status === "accepted");
   const total = accepted.length;
 
-  // Stack lives in top-right slot (col = COLS-1, row = 0)
-  // Cards fill left-to-right, top-to-bottom, skipping that slot
+  function getStackPosition() {
+    const gridW = COLS * CARD_W + (COLS - 1) * GAP_X;
+    const originX = -gridW / 2 + CARD_W / 2;
+    return {
+      x: originX + (COLS - 1) * (CARD_W + GAP_X),
+      y: 0,
+    };
+  }
+
   function dealtPosition(cardIndex: number) {
-    // Generate all slots in grid order, skipping top-right
-    const stackSlot = COLS - 1; // slot index 3 (0-based, first row)
+    const stackSlot = COLS - 1;
     let slot = cardIndex;
-    if (slot >= stackSlot) slot += 1; // skip the stack slot
+    if (slot >= stackSlot) slot += 1;
 
     const col = slot % COLS;
     const row = Math.floor(slot / COLS);
 
-    // Center the grid horizontally
     const gridW = COLS * CARD_W + (COLS - 1) * GAP_X;
     const originX = -gridW / 2 + CARD_W / 2;
-    const originY = CARD_H / 2 + 8;
+    const originY = -(getGridHeight() / 2) + CARD_H / 2 + 8;
 
     return {
       x: originX + col * (CARD_W + GAP_X),
@@ -51,22 +57,19 @@ export function RoomPicker({ members }: RoomPickerProps) {
     };
   }
 
-  // Calculate how tall the grid needs to be
   function getGridHeight() {
-    const stackSlot = COLS - 1;
-    const totalSlots = total + 1; // +1 for skipped stack slot
+    const totalSlots = total + 1;
     const rows = Math.ceil(totalSlots / COLS);
-    return rows * CARD_H + (rows - 1) * GAP_Y + 80; // 80px padding
+    return rows * CARD_H + (rows - 1) * GAP_Y + 40;
   }
 
-  // Stack position: top-right slot
-  function getStackPosition() {
-    const gridW = COLS * CARD_W + (COLS - 1) * GAP_X;
-    const originX = -gridW / 2 + CARD_W / 2;
-    return {
-      x: originX + (COLS - 1) * (CARD_W + GAP_X),
-      y: CARD_H / 2 + 8,
-    };
+  function shuffle(arr: number[]) {
+    const a = [...arr];
+    for (let i = a.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [a[i], a[j]] = [a[j], a[i]];
+    }
+    return a;
   }
 
   function startAnimation() {
@@ -77,6 +80,20 @@ export function RoomPicker({ members }: RoomPickerProps) {
     const cards = cardRefs.current;
     const stack = getStackPosition();
 
+    // Generate new random order
+    const newOrder = shuffle([...Array(total).keys()]);
+    setShuffledOrder(newOrder);
+
+    // Reset all card flips and remove medals before starting
+    cards.forEach((card) => {
+      const inner = card.querySelector(".inner-card") as HTMLElement;
+      if (inner) {
+        gsap.set(inner, { rotateY: 0 });
+        const medal = inner.querySelector(".first-place");
+        if (medal) medal.remove();
+      }
+    });
+
     const tl = gsap.timeline({
       defaults: { ease: "power2.out", duration: 0.45 },
       onComplete: () => {
@@ -85,7 +102,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
       },
     });
 
-    // 🃏 Initial stack in CENTER
+    // 🃏 Initial stack in CENTER CENTER
     tl.to(cards, {
       x: () => gsap.utils.random(-4, 4),
       y: (_, i) => -(total - i) * 2,
@@ -127,13 +144,14 @@ export function RoomPicker({ members }: RoomPickerProps) {
       stagger: { each: 0.02, from: "end" },
     });
 
-    // 🃏 Deal cards to grid positions
-    cards.forEach((card, i) => {
-      const pos = dealtPosition(i);
+    // 🃏 Deal cards in shuffled order
+    newOrder.forEach((cardIndex, dealOrder) => {
+      const card = cards[cardIndex];
+      const pos = dealtPosition(dealOrder);
 
       tl.fromTo(
         card,
-        { y: "-=40" },
+        { y: stack.y + "-=40" },
         {
           x: pos.x,
           y: pos.y,
@@ -151,7 +169,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
           duration: 0.35,
           ease: "power2.out",
           onStart: () => {
-            if (i === 0) {
+            if (dealOrder === 0) {
               const front = inner.querySelector(".card-front") as HTMLElement;
               if (front && !front.querySelector(".first-place")) {
                 const medal = document.createElement("div");
@@ -195,7 +213,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
 
             {/* Card arena */}
             <div
-              className="relative w-full flex items-start justify-center overflow-visible"
+              className="relative w-full flex items-center justify-center overflow-visible"
               style={{ height: gridHeight, perspective: 800 }}
             >
               {accepted.map((m, i) => (
