@@ -49,6 +49,7 @@ export default function TripDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [membersCollapsed, setMembersCollapsed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -125,17 +126,14 @@ export default function TripDetailPage() {
     <div>
       {/* Hero */}
       <div className="relative -mx-4 sm:-mx-6 lg:-mx-8 mb-6 overflow-hidden" style={{ minHeight: 280 }}>
-        {/* Background */}
         {trip.coverImage ? (
           <img src={trip.coverImage} alt="" className="absolute inset-0 w-full h-full object-cover" />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-sky-400 via-violet-400 to-pink-400" />
         )}
-        {/* Overlay */}
-<div className="absolute inset-0 bg-black/30" />
-<div className="absolute inset-0 bg-sky-900/40 [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_75%)]" />
+        <div className="absolute inset-0 bg-black/30" />
+        <div className="absolute inset-0 bg-sky-900/40 [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_75%)]" />
 
-        {/* Top bar */}
         <div className="relative z-10 flex items-center justify-between px-4 pt-4">
           <Link href="/?tab=trips" className="flex items-center justify-center w-9 h-9 rounded-full bg-white/20 backdrop-blur-sm text-white text-sm hover:bg-white/30 transition">
             ←
@@ -149,19 +147,16 @@ export default function TripDetailPage() {
           </button>
         </div>
 
-        {/* Hero content */}
         <div className="relative z-10 flex flex-col items-center justify-center text-center px-6 py-10 space-y-3">
           <span className={"inline-block rounded-full px-3 py-1 text-xs font-semibold " + countdown.color}>
             {countdown.label}
           </span>
           <h1 className="font-display text-3xl font-bold text-white drop-shadow-lg leading-tight">
-  {trip.name}
-</h1>
+            {trip.name}
+          </h1>
           <p className="text-white/90 font-medium">{trip.destination}</p>
           <p className="text-white/70 text-sm">{formatDateRange(trip.startDate, trip.endDate)}</p>
           {trip.description && <p className="text-white/70 text-sm max-w-sm">{trip.description}</p>}
-
-          {/* Photo upload button */}
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
@@ -198,14 +193,23 @@ export default function TripDetailPage() {
         <div className="space-y-10">
           <section>
             <div className="mb-4 flex items-center justify-between">
-              <h2 className="font-display text-lg font-semibold text-sky-700">Group members</h2>
+              <button
+                type="button"
+                onClick={() => setMembersCollapsed((c) => !c)}
+                className="font-display text-lg font-semibold text-sky-700 flex items-center gap-2"
+              >
+                Group members
+                <span className="text-sm text-slate-400">{membersCollapsed ? "▼" : "▲"}</span>
+              </button>
               <div className="flex gap-2">
                 <CarOrganizer tripId={trip.id} members={trip.members} />
                 <RoomPicker members={trip.members} />
                 <InviteMember tripId={trip.id} onInvited={refreshTrip} />
               </div>
             </div>
-            <MemberList tripId={trip.id} members={trip.members} onUpdate={refreshTrip} />
+            {!membersCollapsed && (
+              <MemberList tripId={trip.id} members={trip.members} onUpdate={refreshTrip} />
+            )}
           </section>
           <section>
             <div className="mb-4 flex items-center justify-between">
