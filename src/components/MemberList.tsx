@@ -49,7 +49,6 @@ export function MemberList({ tripId, members = [], onUpdate }: MemberListProps) 
             </div>
             <div className="flex-1 min-w-0">
               <p className="font-medium text-slate-800 truncate">{member.name}</p>
-              <p className="text-sm text-slate-500 truncate">{member.email}</p>
             </div>
             <div className="flex items-center gap-2 shrink-0">
               {updatingId === member.id ? (

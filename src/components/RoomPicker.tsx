@@ -12,6 +12,12 @@ const CARD_COLORS = [
   "bg-emerald-400","bg-orange-400","bg-pink-400","bg-teal-400",
 ];
 
+const CARD_W = 80;
+const CARD_H = 112;
+const GAP_X = 12;
+const GAP_Y = 20;
+const COLS = 4;
+
 export function RoomPicker({ members }: RoomPickerProps) {
   const [open, setOpen] = useState(false);
   const [phase, setPhase] = useState<"idle" | "animating" | "done">("idle");
@@ -22,17 +28,44 @@ export function RoomPicker({ members }: RoomPickerProps) {
   const accepted = members.filter((m) => m.status === "accepted");
   const total = accepted.length;
 
-  function dealtPosition(index: number) {
-    const cols = Math.min(total, 4);
-    const col = index % cols;
-    const row = Math.floor(index / cols);
-    const spacing = Math.min(88, 300 / cols);
-    const startX = -(Math.min(total, cols) - 1) * spacing / 2;
+  // Stack lives in top-right slot (col = COLS-1, row = 0)
+  // Cards fill left-to-right, top-to-bottom, skipping that slot
+  function dealtPosition(cardIndex: number) {
+    // Generate all slots in grid order, skipping top-right
+    const stackSlot = COLS - 1; // slot index 3 (0-based, first row)
+    let slot = cardIndex;
+    if (slot >= stackSlot) slot += 1; // skip the stack slot
+
+    const col = slot % COLS;
+    const row = Math.floor(slot / COLS);
+
+    // Center the grid horizontally
+    const gridW = COLS * CARD_W + (COLS - 1) * GAP_X;
+    const originX = -gridW / 2 + CARD_W / 2;
+    const originY = CARD_H / 2 + 8;
 
     return {
-      x: startX + col * spacing,
-      y: row * 118 + 50,
+      x: originX + col * (CARD_W + GAP_X),
+      y: originY + row * (CARD_H + GAP_Y),
       rotation: gsap.utils.random(-2, 2),
+    };
+  }
+
+  // Calculate how tall the grid needs to be
+  function getGridHeight() {
+    const stackSlot = COLS - 1;
+    const totalSlots = total + 1; // +1 for skipped stack slot
+    const rows = Math.ceil(totalSlots / COLS);
+    return rows * CARD_H + (rows - 1) * GAP_Y + 80; // 80px padding
+  }
+
+  // Stack position: top-right slot
+  function getStackPosition() {
+    const gridW = COLS * CARD_W + (COLS - 1) * GAP_X;
+    const originX = -gridW / 2 + CARD_W / 2;
+    return {
+      x: originX + (COLS - 1) * (CARD_W + GAP_X),
+      y: CARD_H / 2 + 8,
     };
   }
 
@@ -42,6 +75,7 @@ export function RoomPicker({ members }: RoomPickerProps) {
     setPhase("animating");
 
     const cards = cardRefs.current;
+    const stack = getStackPosition();
 
     const tl = gsap.timeline({
       defaults: { ease: "power2.out", duration: 0.45 },
@@ -51,10 +85,10 @@ export function RoomPicker({ members }: RoomPickerProps) {
       },
     });
 
-    // 🃏 Initial stack
+    // 🃏 Initial stack at top-right
     tl.to(cards, {
-      x: () => gsap.utils.random(-4, 4),
-      y: (_, i) => -(total - i) * 2,
+      x: () => stack.x + gsap.utils.random(-4, 4),
+      y: (_, i) => stack.y - (total - i) * 2,
       rotation: () => gsap.utils.random(-4, 4),
       scale: 1,
       stagger: { each: 0.03, from: "end" },
@@ -65,8 +99,8 @@ export function RoomPicker({ members }: RoomPickerProps) {
       const speed = 0.5 - i * 0.08;
 
       tl.to(cards, {
-        x: () => gsap.utils.random(-140, 140),
-        y: () => gsap.utils.random(-60, 40),
+        x: () => stack.x + gsap.utils.random(-140, 140),
+        y: () => stack.y + gsap.utils.random(-60, 40),
         rotation: () => gsap.utils.random(-25, 25),
         scale: 0.96,
         duration: speed,
@@ -74,8 +108,8 @@ export function RoomPicker({ members }: RoomPickerProps) {
       });
 
       tl.to(cards, {
-        x: () => gsap.utils.random(-6, 6),
-        y: (_, i) => -(total - i) * 2,
+        x: () => stack.x + gsap.utils.random(-6, 6),
+        y: (_, i) => stack.y - (total - i) * 2,
         rotation: () => gsap.utils.random(-6, 6),
         scale: 1,
         duration: speed * 0.9,
@@ -83,11 +117,10 @@ export function RoomPicker({ members }: RoomPickerProps) {
       });
     }
 
-    // 🃏 Deal cards
+    // 🃏 Deal cards to grid positions
     cards.forEach((card, i) => {
       const pos = dealtPosition(i);
 
-      // move in arc
       tl.fromTo(
         card,
         { y: "-=40" },
@@ -101,7 +134,6 @@ export function RoomPicker({ members }: RoomPickerProps) {
         "+=0.06"
       );
 
-      // flip inner wrapper to reveal front
       const inner = card.querySelector(".inner-card") as HTMLElement;
       if (inner) {
         tl.to(inner, {
@@ -109,7 +141,6 @@ export function RoomPicker({ members }: RoomPickerProps) {
           duration: 0.35,
           ease: "power2.out",
           onStart: () => {
-            // Add medal for first card
             if (i === 0) {
               const front = inner.querySelector(".card-front") as HTMLElement;
               if (front && !front.querySelector(".first-place")) {
@@ -132,6 +163,8 @@ export function RoomPicker({ members }: RoomPickerProps) {
     setPhase("idle");
   }
 
+  const gridHeight = getGridHeight();
+
   return (
     <>
       <button onClick={() => setOpen(true)} className="btn-secondary text-sm">
@@ -142,17 +175,18 @@ export function RoomPicker({ members }: RoomPickerProps) {
         <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
           <div className="absolute inset-0 bg-black/40" onClick={close} />
 
-          <div className="relative w-full max-w-md bg-white rounded-2xl p-6 space-y-5 shadow-2xl">
-            <div className="flex justify-between">
+          <div className="relative w-full max-w-md bg-white rounded-2xl p-6 shadow-2xl flex flex-col gap-5">
+            <div className="flex justify-between items-center">
               <h3 className="text-lg font-semibold text-sky-700">
                 🃏 Room pick order
               </h3>
               <button onClick={close}>✕</button>
             </div>
 
+            {/* Card arena */}
             <div
-              className="relative h-[260px] flex items-center justify-center"
-              style={{ perspective: 800 }}
+              className="relative w-full flex items-start justify-center overflow-visible"
+              style={{ height: gridHeight, perspective: 800 }}
             >
               {accepted.map((m, i) => (
                 <div
@@ -190,10 +224,14 @@ export function RoomPicker({ members }: RoomPickerProps) {
               ))}
             </div>
 
+            {total <= 1 && (
+              <p className="text-center text-xs text-slate-400">Add at least 2 members to use the room picker!</p>
+            )}
+
             <button
               onClick={startAnimation}
-              disabled={phase === "animating"}
-              className="btn-primary w-full py-3"
+              disabled={phase === "animating" || total <= 1}
+              className={"btn-primary w-full py-3 " + (total <= 1 ? "opacity-40 cursor-not-allowed" : "")}
             >
               {phase === "animating"
                 ? "Shuffling..."
