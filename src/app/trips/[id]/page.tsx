@@ -165,7 +165,7 @@ export default function TripDetailPage() {
           >
             {uploadingPhoto ? "Uploading..." : trip.coverImage ? "✏️ Change photo" : "📷 Add cover photo"}
           </button>
-          <input ref={fileInputRef} type="file" accept="image/*" className="hidden" onChange={handlePhotoUpload} />
+          <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={handlePhotoUpload} />
         </div>
       </div>
 
