@@ -93,8 +93,16 @@ export function Header() {
   }
 
   return (
-    <header className="fixed left-0 right-0 top-0 z-50 w-full border-b-2 border-sky-100 bg-white shadow-sm shadow-sky-100/50">
-      <div style={{ height: "env(safe-area-inset-top, 0px)" }} />
+    <header
+      className="fixed left-0 right-0 top-0 z-50 w-full border-b-2 border-sky-100 bg-white shadow-sm shadow-sky-100/50"
+      // ✅ THE FIX: padding-top goes directly on the fixed element, never on
+      // a child div inside it. This value is resolved once at paint time and
+      // is never recalculated during scroll, so the header stays rock-solid.
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
+      {/* ❌ REMOVED: <div style={{ height: "env(safe-area-inset-top, 0px)" }} />
+          That inner spacer div was the culprit — iOS re-evaluated it on every
+          scroll tick, causing the header to shift down on upward swipes. */}
 
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">

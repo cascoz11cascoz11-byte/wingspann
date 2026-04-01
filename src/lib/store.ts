@@ -729,4 +729,4 @@ function mapFriend(data: any): Friend {
     avatarUrl: data.avatar_url,
     createdAt: data.created_at,
   };
-}
+} 

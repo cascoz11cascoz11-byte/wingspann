@@ -354,7 +354,7 @@ export default function WishlistPage() {
                 <input type="text" className="input" placeholder="A short description..." value={description} onChange={(e) => setDescription(e.target.value)} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Personal notes (optional)</label>
+                <label className="block text-sm font-medium text-slate-700 mb-1">Notes (optional)</label>
                 <input type="text" className="input" placeholder="Why you want to go, who told you about it..." value={notes} onChange={(e) => setNotes(e.target.value)} />
               </div>
               <div>
