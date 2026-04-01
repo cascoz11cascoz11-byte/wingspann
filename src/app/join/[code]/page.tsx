@@ -20,11 +20,27 @@ export default function JoinTripPage() {
   const [responding, setResponding] = useState(false);
   const [showNames, setShowNames] = useState(false);
   const [names, setNames] = useState("");
+  const [alreadyJoined, setAlreadyJoined] = useState(false);
 
   useEffect(() => {
     async function load() {
       const t = await getTripByInviteCode(code);
       setTrip(t ?? null);
+
+      // Check if user is already a member
+      if (t) {
+        const supabase = createClient();
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user?.email) {
+          const already = t.members.some(
+            (m) => m.email === user.email && m.status === "accepted"
+          );
+          if (already) {
+            setAlreadyJoined(true);
+          }
+        }
+      }
+
       setLoading(false);
     }
     load();
@@ -53,7 +69,11 @@ export default function JoinTripPage() {
         ? [{ name: user.user_metadata?.display_name ?? user.email!, email: user.email! }]
         : nameList.map((name) => ({ name, email: user.email! }));
 
-      for (const member of membersToAdd) {
+      // Filter out anyone already in the trip
+      const existingEmails = new Set(trip!.members.map((m) => m.email));
+      const newMembers = membersToAdd.filter((m) => !existingEmails.has(m.email));
+
+      for (const member of newMembers) {
         await addMember(trip!.id, {
           name: member.name,
           email: member.email,
@@ -61,7 +81,6 @@ export default function JoinTripPage() {
         });
       }
 
-      // Send join notification to trip owner
       fetch("/api/notify-joined", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,11 +94,14 @@ export default function JoinTripPage() {
 
       router.push("/trips/" + trip!.id);
     } else {
-      await addMember(trip!.id, {
-        name: user.user_metadata?.display_name ?? user.email!,
-        email: user.email!,
-        status: "declined",
-      });
+      const already = trip!.members.some((m) => m.email === user.email);
+      if (!already) {
+        await addMember(trip!.id, {
+          name: user.user_metadata?.display_name ?? user.email!,
+          email: user.email!,
+          status: "declined",
+        });
+      }
       router.push("/");
     }
   }
@@ -102,6 +124,12 @@ export default function JoinTripPage() {
         </div>
       </div>
     );
+  }
+
+  // Already joined — just redirect to the trip
+  if (alreadyJoined) {
+    router.push("/trips/" + trip.id);
+    return null;
   }
 
   return (
