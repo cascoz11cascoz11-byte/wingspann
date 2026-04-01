@@ -86,7 +86,7 @@ export default function FriendsPage() {
       </div>
 
       <input
-        ref={fileIRef}
+        ref={fileInputRef}
         type="file"
         accept="image/png,image/jpeg,image/webp,image/gif"
         className="hidden"
@@ -109,7 +109,7 @@ export default function FriendsPage() {
               <button
                 type="button"
                 onClick={() => {
-                  uploadingFriendIcurrent = friend.id;
+                  uploadingFriendId.current = friend.id;
                   fileInputRef.current?.click();
                 }}
                 className="relative shrink-0 group"
@@ -126,7 +126,7 @@ export default function FriendsPage() {
                 </div>
                 {uploadingFor === friend.id && (
                   <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center">
-                    <span className="text-white text-xs">../span>
+                    <span className="text-white text-xs">...</span>
                   </div>
                 )}
               </button>
@@ -164,7 +164,7 @@ export default function FriendsPage() {
                 <input type="email" className="input" placeholder="e.g. grandma@email.com" value={email} onChange={(e) => setEmail(e.target.value)} required />
               </div>
               <div className="flex gap-2 pt-1">
-                <button type="submit" className="btn-primary text-sm" disabled={saving}>aving ? "Saving..." : "Add friend"}</button>
+                <button type="submit" className="btn-primary text-sm" disabled={saving}>{saving ? "Saving..." : "Add friend"}</button>
                 <button type="button" onClick={() => setAddOpen(false)} className="btn-secondary text-sm">Cancel</button>
               </div>
             </form>
