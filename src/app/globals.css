@@ -43,3 +43,9 @@ body {
     @apply w-full rounded-2xl border-2 border-sky-100 bg-white px-4 py-3 text-slate-800 placeholder-slate-400 focus:border-sky-400 focus:outline-none focus:ring-4 focus:ring-sky-100;
   }
 }
+
+@layer utilities {
+  .safe-top {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+}
