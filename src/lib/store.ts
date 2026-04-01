@@ -678,3 +678,55 @@ export async function updateTrip(id: string, updates: { coverImage?: string }): 
   const { error } = await db().from("trips").update({ cover_image: updates.coverImage }).eq("id", id);
   return !error;
 }
+export interface Friend {
+  id: string;
+  userId: string;
+  name: string;
+  email: string;
+  avatarUrl?: string;
+  createdAt: string;
+}
+
+export async function getFriends(): Promise<Friend[]> {
+  const userId = await getUserId();
+  if (!userId) return [];
+  const { data } = await db().from("friends").select("*").eq("user_id", userId).order("name", { ascending: true });
+  return (data ?? []).map(mapFriend);
+}
+
+export async function addFriend(friend: { name: string; email: string; avatarUrl?: string }): Promise<Friend | undefined> {
+  const userId = await getUserId();
+  if (!userId) return undefined;
+  const { data } = await db().from("friends").insert({
+    user_id: userId,
+    name: friend.name,
+    email: friend.email,
+    avatar_url: friend.avatarUrl,
+  }).select().single();
+  return data ? mapFriend(data) : undefined;
+}
+
+export async function updateFriend(id: string, updates: { name?: string; email?: string; avatarUrl?: string }): Promise<boolean> {
+  const { error } = await db().from("friends").update({
+    name: updates.name,
+    email: updates.email,
+    avatar_url: updates.avatarUrl,
+  }).eq("id", id);
+  return !error;
+}
+
+export async function removeFriend(id: string): Promise<boolean> {
+  const { error } = await db().from("friends").delete().eq("id", id);
+  return !error;
+}
+
+function mapFriend(data: any): Friend {
+  return {
+    id: data.id,
+    userId: data.user_id,
+    name: data.name,
+    email: data.email,
+    avatarUrl: data.avatar_url,
+    createdAt: data.created_at,
+  };
+}
