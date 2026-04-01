@@ -163,7 +163,7 @@ export default function TripDetailPage() {
             disabled={uploadingPhoto}
             className="mt-2 flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 px-3 py-1.5 text-xs text-white hover:bg-white/30 transition"
           >
-            {uploadingPhoto ? "Uploading..." : trip.coverImage ? "✏️ Change photo" : "📷 Add cover photo"}
+            {uploadingPhoto ? "Uploading..." : trip.coverImage ? "✏️ Change photo (use library only)" : "📷 Add cover photo (use library only)"}
           </button>
           <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={handlePhotoUpload} />
         </div>
@@ -193,6 +193,11 @@ export default function TripDetailPage() {
         <div className="space-y-10">
           <section>
             <div className="mb-4 space-y-3">
+              <div className="flex gap-2">
+                <CarOrganizer tripId={trip.id} members={trip.members} />
+                <RoomPicker members={trip.members} />
+                <InviteMember tripId={trip.id} onInvited={refreshTrip} />
+              </div>
               <button
                 type="button"
                 onClick={() => setMembersCollapsed((c) => !c)}
@@ -201,11 +206,6 @@ export default function TripDetailPage() {
                 Group members
                 <span className="text-sm text-slate-400">{membersCollapsed ? "▼" : "▲"}</span>
               </button>
-              <div className="flex gap-2">
-                <CarOrganizer tripId={trip.id} members={trip.members} />
-                <RoomPicker members={trip.members} />
-                <InviteMember tripId={trip.id} onInvited={refreshTrip} />
-              </div>
             </div>
             {!membersCollapsed && (
               <MemberList tripId={trip.id} members={trip.members} onUpdate={refreshTrip} />

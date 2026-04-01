@@ -199,6 +199,9 @@ export function Header() {
                   <Link href="/wishlist" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
                     🌟 Wishlist
                   </Link>
+                  <Link href="/friends" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
+                    👯 Friends
+                  </Link>
                   <Link href="/notification-settings" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
                     🔔 Notification Settings
                   </Link>
@@ -240,9 +243,6 @@ export function Header() {
                     onClick={() => { close(); handleLogout(); }}
                     className="w-full flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-500 hover:bg-red-50 hover:text-red-500 transition text-left"
                   >
-                    <Link href="/friends" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
-  👯 Friends
-</Link>
                     Log out
                   </button>
                 </div>
