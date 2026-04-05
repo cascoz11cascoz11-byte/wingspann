@@ -320,7 +320,7 @@ export function TripWishlist({ tripId, tripStartDate, tripEndDate, sourceBoardId
                       type="time"
                       value={scheduleTime}
                       onChange={(e) => setScheduleTime(e.target.value)}
-                      className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none"
+                      className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-base text-slate-700 focus:border-sky-400 focus:outline-none"
                     />
                   </div>
                 </div>
@@ -346,7 +346,7 @@ export function TripWishlist({ tripId, tripStartDate, tripEndDate, sourceBoardId
                     value={addName}
                     onChange={(e) => setAddName(e.target.value)}
                     placeholder="e.g. Sunset hike, Ramen spot..."
-                    className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none"
+                    className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-base text-slate-700 focus:border-sky-400 focus:outline-none"
                   />
                 </div>
 
@@ -377,7 +377,7 @@ export function TripWishlist({ tripId, tripStartDate, tripEndDate, sourceBoardId
                     value={addVenue}
                     onChange={(e) => setAddVenue(e.target.value)}
                     placeholder="e.g. 123 Main St"
-                    className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none"
+                    className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-base text-slate-700 focus:border-sky-400 focus:outline-none"
                   />
                 </div>
 
@@ -388,7 +388,7 @@ export function TripWishlist({ tripId, tripStartDate, tripEndDate, sourceBoardId
                     value={addPrice}
                     onChange={(e) => setAddPrice(e.target.value)}
                     placeholder="e.g. $20/person, Free"
-                    className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none"
+                    className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-base text-slate-700 focus:border-sky-400 focus:outline-none"
                   />
                 </div>
 
@@ -399,7 +399,7 @@ export function TripWishlist({ tripId, tripStartDate, tripEndDate, sourceBoardId
                     value={addLink}
                     onChange={(e) => setAddLink(e.target.value)}
                     placeholder="https://..."
-                    className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none"
+                    className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-base text-slate-700 focus:border-sky-400 focus:outline-none"
                   />
                 </div>
 
@@ -410,7 +410,7 @@ export function TripWishlist({ tripId, tripStartDate, tripEndDate, sourceBoardId
                     onChange={(e) => setAddNotes(e.target.value)}
                     placeholder="Any extra details..."
                     rows={2}
-                    className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-sm text-slate-700 focus:border-sky-400 focus:outline-none resize-none"
+                    className="w-full rounded-xl border-2 border-slate-200 px-3 py-2 text-base text-slate-700 focus:border-sky-400 focus:outline-none resize-none"
                   />
                 </div>
 
