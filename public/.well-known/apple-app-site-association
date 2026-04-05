@@ -1,0 +1,11 @@
+{
+  "applinks": {
+    "apps": [],
+    "details": [
+      {
+        "appID": "87QCC29CGC.com.wingspann.app",
+        "paths": ["*"]
+      }
+    ]
+  }
+}
