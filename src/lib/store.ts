@@ -859,3 +859,55 @@ export async function removeTripWishlistItem(id: string): Promise<boolean> {
   const { error } = await db().from("trip_wishlist_items").delete().eq("id", id);
   return !error;
 }
+// ─── Add these to the bottom of src/lib/store.ts ─────────────────────────────
+
+export interface JoinedBoard extends Board {
+  isJoined: boolean;
+}
+
+export async function joinBoard(boardId: string): Promise<boolean> {
+  const userId = await getUserId();
+  if (!userId) return false;
+  const { error } = await db().from("board_members").insert({
+    board_id: boardId,
+    user_id: userId,
+  });
+  return !error;
+}
+
+export async function hasJoinedBoard(boardId: string): Promise<boolean> {
+  const userId = await getUserId();
+  if (!userId) return false;
+  const { data } = await db()
+    .from("board_members")
+    .select("id")
+    .eq("board_id", boardId)
+    .eq("user_id", userId)
+    .single();
+  return !!data;
+}
+
+export async function getJoinedBoards(): Promise<Board[]> {
+  const userId = await getUserId();
+  if (!userId) return [];
+  const { data } = await db()
+    .from("board_members")
+    .select("board_id, boards(*)")
+    .eq("user_id", userId)
+    .order("joined_at", { ascending: false });
+  return (data ?? [])
+    .map((row: any) => row.boards)
+    .filter(Boolean)
+    .map(mapBoard);
+}
+
+export async function leaveBoard(boardId: string): Promise<boolean> {
+  const userId = await getUserId();
+  if (!userId) return false;
+  const { error } = await db()
+    .from("board_members")
+    .delete()
+    .eq("board_id", boardId)
+    .eq("user_id", userId);
+  return !error;
+}

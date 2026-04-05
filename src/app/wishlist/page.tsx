@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useState } from "react";
-import { getWishlist, removeFromWishlist, addToWishlist, getTrips, addActivity, getBoards, createBoard, deleteBoard } from "@/lib/store";
+import { getWishlist, removeFromWishlist, addToWishlist, getTrips, addActivity, getBoards, getJoinedBoards, createBoard, deleteBoard, leaveBoard } from "@/lib/store";
 import type { WishlistItem, Board } from "@/lib/store";
 import type { Trip } from "@/types";
 import Link from "next/link";
@@ -53,7 +53,9 @@ export default function WishlistPage() {
   const [link, setLink] = useState("");
   const [saving, setSaving] = useState(false);
 
-  const [boards, setBoards] = useState<Board[]>([]);
+  // Boards state — now tracks created vs joined separately
+  const [myBoards, setMyBoards] = useState<Board[]>([]);
+  const [joinedBoards, setJoinedBoards] = useState<Board[]>([]);
   const [boardsLoading, setBoardsLoading] = useState(true);
   const [boardAddOpen, setBoardAddOpen] = useState(false);
   const [boardTitle, setBoardTitle] = useState("");
@@ -73,7 +75,10 @@ export default function WishlistPage() {
 
   async function loadBoards() {
     setBoardsLoading(true);
-    setBoards(await getBoards());
+    const [mine, joined] = await Promise.all([getBoards(), getJoinedBoards()]);
+    setMyBoards(mine);
+    // Filter out any joined boards that user also owns (edge case)
+    setJoinedBoards(joined.filter((j) => !mine.find((m) => m.id === j.id)));
     setBoardsLoading(false);
   }
 
@@ -128,7 +133,13 @@ export default function WishlistPage() {
   async function handleDeleteBoard(id: string) {
     if (!confirm("Delete this board?")) return;
     await deleteBoard(id);
-    setBoards((prev) => prev.filter((b) => b.id !== id));
+    setMyBoards((prev) => prev.filter((b) => b.id !== id));
+  }
+
+  async function handleLeaveBoard(id: string) {
+    if (!confirm("Remove this board from your list?")) return;
+    await leaveBoard(id);
+    setJoinedBoards((prev) => prev.filter((b) => b.id !== id));
   }
 
   function copyBoardLink(board: Board) {
@@ -145,6 +156,8 @@ export default function WishlistPage() {
 
   const activeTab = "border-b-2 border-sky-500 text-sky-600 font-semibold pb-2";
   const inactiveTab = "text-slate-500 hover:text-sky-500 pb-2 transition";
+
+  const allBoards = [...myBoards, ...joinedBoards];
 
   return (
     <div className="max-w-2xl mx-auto py-8 px-4 space-y-6">
@@ -170,6 +183,11 @@ export default function WishlistPage() {
         </button>
         <button type="button" onClick={() => setTab("shared")} className={tab === "shared" ? activeTab : inactiveTab}>
           🗺️ Shared Boards
+          {allBoards.length > 0 && (
+            <span className="ml-1.5 rounded-full bg-sky-100 text-sky-600 text-[10px] font-bold px-1.5 py-0.5">
+              {allBoards.length}
+            </span>
+          )}
         </button>
         <button type="button" onClick={() => setTab("globe")} className={tab === "globe" ? activeTab : inactiveTab}>
           🎯 Throw a Dart
@@ -272,44 +290,86 @@ export default function WishlistPage() {
       )}
 
       {tab === "shared" && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           {boardsLoading ? (
             <p className="text-slate-500 text-center py-12">Loading...</p>
-          ) : boards.length === 0 ? (
+          ) : allBoards.length === 0 ? (
             <div className="card border-dashed border-sky-200 p-8 text-center space-y-2">
               <p className="text-3xl">🗺️</p>
               <p className="text-slate-600 font-medium">No shared boards yet</p>
-              <p className="text-sm text-slate-400">Create a board for a destination and invite your crew to add ideas and heart their favorites!</p>
+              <p className="text-sm text-slate-400">Create a board and invite your crew, or accept an invite link from someone else!</p>
               <button type="button" onClick={() => setBoardAddOpen(true)} className="btn-primary text-sm mt-2">+ Create first board</button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {boards.map((board) => (
-                <div key={board.id} className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition">
-                  <Link href={"/boards/" + board.id}>
-                    <div className={"bg-gradient-to-br " + board.gradient + " h-24 flex items-center justify-center"}>
-                      <span className="text-5xl drop-shadow-lg">{board.emoji}</span>
-                    </div>
-                  </Link>
-                  <div className="p-4 space-y-3">
-                    <div>
-                      <Link href={"/boards/" + board.id}>
-                        <h2 className="font-display text-base font-semibold text-slate-800 hover:text-sky-600 transition">{board.title}</h2>
-                      </Link>
-                      {board.description && <p className="text-xs text-slate-500 mt-0.5">{board.description}</p>}
-                    </div>
-                    <div className="flex gap-2">
-                      <button type="button" onClick={() => copyBoardLink(board)} className="flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-sky-300 hover:text-sky-600 transition">
-                        {copied === board.id ? "Copied!" : "📋 Share link"}
-                      </button>
-                      <button type="button" onClick={() => handleDeleteBoard(board.id)} className="rounded-xl border border-red-100 px-3 py-1.5 text-xs font-medium text-red-400 hover:border-red-300 hover:text-red-600 transition">
-                        Delete
-                      </button>
-                    </div>
+            <>
+              {/* My boards */}
+              {myBoards.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">My boards</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {myBoards.map((board) => (
+                      <div key={board.id} className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition">
+                        <Link href={"/boards/" + board.id}>
+                          <div className={"bg-gradient-to-br " + board.gradient + " h-24 flex items-center justify-center"}>
+                            <span className="text-5xl drop-shadow-lg">{board.emoji}</span>
+                          </div>
+                        </Link>
+                        <div className="p-4 space-y-3">
+                          <div>
+                            <Link href={"/boards/" + board.id}>
+                              <h2 className="font-display text-base font-semibold text-slate-800 hover:text-sky-600 transition">{board.title}</h2>
+                            </Link>
+                            {board.description && <p className="text-xs text-slate-500 mt-0.5">{board.description}</p>}
+                          </div>
+                          <div className="flex gap-2">
+                            <button type="button" onClick={() => copyBoardLink(board)} className="flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-sky-300 hover:text-sky-600 transition">
+                              {copied === board.id ? "Copied!" : "📋 Share link"}
+                            </button>
+                            <button type="button" onClick={() => handleDeleteBoard(board.id)} className="rounded-xl border border-red-100 px-3 py-1.5 text-xs font-medium text-red-400 hover:border-red-300 hover:text-red-600 transition">
+                              Delete
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 </div>
-              ))}
-            </div>
+              )}
+
+              {/* Joined boards */}
+              {joinedBoards.length > 0 && (
+                <div className="space-y-3">
+                  <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Joined boards</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {joinedBoards.map((board) => (
+                      <div key={board.id} className="rounded-2xl overflow-hidden border border-slate-200 shadow-sm hover:shadow-md transition">
+                        <Link href={"/boards/" + board.id}>
+                          <div className={"bg-gradient-to-br " + board.gradient + " h-24 flex items-center justify-center"}>
+                            <span className="text-5xl drop-shadow-lg">{board.emoji}</span>
+                          </div>
+                        </Link>
+                        <div className="p-4 space-y-3">
+                          <div>
+                            <Link href={"/boards/" + board.id}>
+                              <h2 className="font-display text-base font-semibold text-slate-800 hover:text-sky-600 transition">{board.title}</h2>
+                            </Link>
+                            {board.description && <p className="text-xs text-slate-500 mt-0.5">{board.description}</p>}
+                          </div>
+                          <div className="flex gap-2">
+                            <Link href={"/boards/" + board.id} className="flex-1 rounded-xl border border-slate-200 px-3 py-1.5 text-xs font-medium text-slate-600 hover:border-sky-300 hover:text-sky-600 transition text-center">
+                              View board →
+                            </Link>
+                            <button type="button" onClick={() => handleLeaveBoard(board.id)} className="rounded-xl border border-red-100 px-3 py-1.5 text-xs font-medium text-red-400 hover:border-red-300 hover:text-red-600 transition">
+                              Leave
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </>
           )}
         </div>
       )}
