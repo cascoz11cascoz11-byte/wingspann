@@ -15,6 +15,7 @@ import { ActivityFinder } from "@/components/ActivityFinder";
 import { ExpenseTracker } from "@/components/ExpenseTracker";
 import { MapTab } from "@/components/MapTab";
 import PhotoCircleLink from "@/components/PhotoCircleLink";
+import { TripWishlist } from "@/components/TripWishlist";
 import { createClient } from "@/lib/supabase";
 
 function formatDateRange(start: string, end: string) {
@@ -211,10 +212,20 @@ export default function TripDetailPage() {
               <MemberList tripId={trip.id} members={trip.members} onUpdate={refreshTrip} />
             )}
           </section>
+
           <section>
             <div className="mb-4 flex items-center justify-between">
               <h2 className="font-display text-lg font-semibold text-sky-700">Itinerary</h2>
+              {/* ── All three action buttons in a row ── */}
               <div className="flex gap-2">
+                {/* ✨ NEW: Wishlist popup */}
+                <TripWishlist
+                  tripId={trip.id}
+                  tripStartDate={trip.startDate}
+                  tripEndDate={trip.endDate}
+                  sourceBoardId={trip.sourceBoardId}
+                  onActivityAdded={refreshTrip}
+                />
                 <ActivityFinder
                   tripId={trip.id}
                   tripDestination={trip.destination}

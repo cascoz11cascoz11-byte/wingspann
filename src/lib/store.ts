@@ -730,3 +730,132 @@ function mapFriend(data: any): Friend {
     createdAt: data.created_at,
   };
 } 
+// ─── Trip Wishlist ────────────────────────────────────────────────────────────
+// Add these to the bottom of src/lib/store.ts
+
+export interface TripWishlistItem {
+  id: string;
+  tripId: string;
+  addedBy?: string;
+  name: string;
+  type: "activity" | "restaurant" | "stay" | "destination";
+  description?: string;
+  notes?: string;
+  venue?: string;
+  price?: string;
+  link?: string;
+  scheduled: boolean;
+  createdAt: string;
+}
+
+function mapTripWishlistItem(data: any): TripWishlistItem {
+  return {
+    id: data.id,
+    tripId: data.trip_id,
+    addedBy: data.added_by,
+    name: data.name,
+    type: data.type ?? "activity",
+    description: data.description,
+    notes: data.notes,
+    venue: data.venue,
+    price: data.price,
+    link: data.link,
+    scheduled: data.scheduled ?? false,
+    createdAt: data.created_at,
+  };
+}
+
+// Get all unscheduled wishlist items for a trip
+export async function getTripWishlist(tripId: string): Promise<TripWishlistItem[]> {
+  const { data } = await db()
+    .from("trip_wishlist_items")
+    .select("*")
+    .eq("trip_id", tripId)
+    .eq("scheduled", false)
+    .order("created_at", { ascending: false });
+  return (data ?? []).map(mapTripWishlistItem);
+}
+
+// Manually add a new item to the trip wishlist
+export async function addTripWishlistItem(
+  tripId: string,
+  item: Pick<TripWishlistItem, "name" | "type" | "description" | "notes" | "venue" | "price" | "link">
+): Promise<TripWishlistItem | undefined> {
+  const userId = await getUserId();
+  const { data } = await db()
+    .from("trip_wishlist_items")
+    .insert({
+      trip_id: tripId,
+      added_by: userId,
+      name: item.name,
+      type: item.type,
+      description: item.description,
+      notes: item.notes,
+      venue: item.venue,
+      price: item.price,
+      link: item.link,
+      scheduled: false,
+    })
+    .select()
+    .single();
+  return data ? mapTripWishlistItem(data) : undefined;
+}
+
+// Copy items from a shared board into the trip wishlist (call once when trip is created or on demand)
+export async function importBoardItemsToTripWishlist(
+  tripId: string,
+  boardId: string
+): Promise<number> {
+  const userId = await getUserId();
+
+  // Get board items
+  const { data: boardItems } = await db()
+    .from("board_items")
+    .select("*")
+    .eq("board_id", boardId);
+
+  if (!boardItems || boardItems.length === 0) return 0;
+
+  // Get already-imported names so we don't double-import
+  const { data: existing } = await db()
+    .from("trip_wishlist_items")
+    .select("name")
+    .eq("trip_id", tripId);
+
+  const existingNames = new Set((existing ?? []).map((e: any) => e.name));
+
+  const toInsert = boardItems
+    .filter((b: any) => !existingNames.has(b.name))
+    .map((b: any) => ({
+      trip_id: tripId,
+      added_by: userId,
+      name: b.name,
+      type: b.type ?? "activity",
+      description: b.description,
+      notes: b.notes,
+      venue: b.venue,
+      price: b.price,
+      link: b.link,
+      scheduled: false,
+    }));
+
+  if (toInsert.length === 0) return 0;
+
+  const { error } = await db().from("trip_wishlist_items").insert(toInsert);
+  return error ? 0 : toInsert.length;
+}
+
+// Mark a wishlist item as scheduled (called when you move it to the itinerary)
+export async function scheduleTripWishlistItem(id: string): Promise<boolean> {
+  const { error } = await db()
+    .from("trip_wishlist_items")
+    .update({ scheduled: true })
+    .eq("id", id);
+  return !error;
+}
+
+// Delete a wishlist item entirely
+export async function removeTripWishlistItem(id: string): Promise<boolean> {
+  const { error } = await db().from("trip_wishlist_items").delete().eq("id", id);
+  return !error;
+}
