@@ -11,5 +11,10 @@ const config: CapacitorConfig = {
   ios: {
     contentInset: 'always',
   },
+  plugins: {
+    App: {
+      launchUrl: 'https://wingspann.vercel.app',
+    },
+  },
 };
 export default config;
