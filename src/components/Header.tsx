@@ -93,10 +93,10 @@ export function Header() {
   }
 
   return (
-    // The safe-top class handles iOS notch spacing via CSS (not inline style).
-    // Inline style with env(safe-area-inset-top) on a fixed element gets
-    // re-evaluated on every iOS scroll tick, causing the blank space on pull-up.
-    <header className="fixed left-0 right-0 top-0 z-50 w-full border-b-2 border-sky-100 bg-white shadow-sm shadow-sky-100/50 safe-top">
+    <header
+      className="fixed left-0 right-0 top-0 z-50 w-full border-b-2 border-sky-100 bg-white shadow-sm shadow-sky-100/50"
+      style={{ paddingTop: "env(safe-area-inset-top, 0px)" }}
+    >
       <div className="mx-auto flex max-w-5xl items-center justify-between px-4 py-3 sm:px-6 lg:px-8">
         <div className="flex items-center gap-3">
           <Link href="/">
@@ -202,6 +202,9 @@ export function Header() {
                   </Link>
                   <Link href="/notification-settings" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
                     🔔 Notification Settings
+                  </Link>
+                  <Link href="/profile" onClick={close} className="flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm text-slate-700 hover:bg-sky-50 hover:text-sky-600 transition">
+                    👤 Profile
                   </Link>
                 </div>
 
