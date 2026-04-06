@@ -1,1 +1,0 @@
-self.__REACT_LOADABLE_MANIFEST='{"../node_modules/@capacitor/geolocation/dist/esm/index.js -> ./web":{"id":9676,"files":["static/chunks/676.68fab153696d4120.js"]},"components/HomeActivityFinder.tsx -> @capacitor/geolocation":{"id":8151,"files":["static/chunks/689-b791307ed825b1f7.js","static/chunks/151.8c9425623d737b4f.js"]}}';
