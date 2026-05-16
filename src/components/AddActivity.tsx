@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { addActivity, getWishlist, getBoardItemsById } from "@/lib/store";
 import type { WishlistItem } from "@/lib/store";
 import type { Activity } from "@/types";
+import { formatFlightTitle } from "@/lib/airport";
 
 interface AddActivityProps {
   tripId: string;
@@ -236,7 +237,7 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
     let finalTitle = title;
     if (type === "travel") {
       if (travelSubtype === "drive") finalTitle = "Drive: " + departureLocation + " to " + arrivalLocation;
-      if (travelSubtype === "flight") finalTitle = "Flight " + flightNumber + ": " + departureLocation + " to " + arrivalLocation;
+      if (travelSubtype === "flight") finalTitle = formatFlightTitle(flightNumber, departureLocation, arrivalLocation);
       if (travelSubtype === "other") finalTitle = title;
     }
 

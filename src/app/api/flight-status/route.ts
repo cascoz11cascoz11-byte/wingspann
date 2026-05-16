@@ -28,14 +28,14 @@ export async function GET(request: NextRequest) {
   return NextResponse.json({
     status: flight?.status ?? null,
     departure: {
-      airport: flight?.departure?.airport?.name ?? null,
+      airport: flight?.departure?.airport?.iata ?? flight?.departure?.airport?.icao ?? null,
       scheduled: flight?.departure?.scheduledTime?.local ?? null,
       actual: flight?.departure?.actualTime?.local ?? null,
       gate: flight?.departure?.gate ?? null,
       terminal: flight?.departure?.terminal ?? null,
     },
     arrival: {
-      airport: flight?.arrival?.airport?.name ?? null,
+      airport: flight?.arrival?.airport?.iata ?? flight?.arrival?.airport?.icao ?? null,
       scheduled: flight?.arrival?.scheduledTime?.local ?? null,
       actual: flight?.arrival?.actualTime?.local ?? null,
       gate: flight?.arrival?.gate ?? null,

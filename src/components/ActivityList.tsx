@@ -2,7 +2,19 @@
 import { useState, useMemo, useEffect, useCallback } from "react";
 import { removeActivity, updateActivityParticipants } from "@/lib/store";
 import type { Activity, FamilyMember } from "@/types";
+import { formatFlightRoute, formatFlightTitle } from "@/lib/airport";
 import { EditActivityForm } from "./EditActivityForm";
+
+function getActivityDisplayTitle(activity: Activity): string {
+  if (activity.travelSubtype === "flight") {
+    return formatFlightTitle(
+      activity.flightNumber ?? "",
+      activity.departureLocation ?? "",
+      activity.arrivalLocation ?? ""
+    );
+  }
+  return activity.title;
+}
 
 interface ActivityListProps { tripId: string; activities: Activity[]; members: FamilyMember[]; onUpdate: () => void; }
 
@@ -265,7 +277,7 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
                   {/* Top row: title + action buttons */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
-                      <h4 className="font-medium text-slate-800 break-words">{activity.title}</h4>
+                      <h4 className="font-medium text-slate-800 break-words">{getActivityDisplayTitle(activity)}</h4>
                       <span className={"rounded-full px-2 py-0.5 text-xs font-medium " + TYPE_COLORS[activity.type]}>{TYPE_LABELS[activity.type]}</span>
                       {activity.travelSubtype === "flight" && <span className="rounded-full bg-blue-100 px-2 py-0.5 text-xs font-medium text-blue-700">✈️ Flight</span>}
                       {activity.travelSubtype === "drive" && <span className="rounded-full bg-orange-100 px-2 py-0.5 text-xs font-medium text-orange-700">🚗 Drive</span>}
@@ -297,7 +309,7 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
                     )}
                     {activity.travelSubtype === "flight" && (activity.departureLocation || activity.arrivalLocation) && (
                       <div className="rounded-xl bg-blue-50 px-3 py-2 text-sm text-blue-800">
-                        ✈️ {activity.departureLocation} to {activity.arrivalLocation}
+                        ✈️ {formatFlightRoute(activity.departureLocation ?? "", activity.arrivalLocation ?? "")}
                         {activity.time && " · Departs " + formatTime(activity.time)}
                         {activity.arrivalTime && " · Arrives " + formatTime(activity.arrivalTime)}
                       </div>

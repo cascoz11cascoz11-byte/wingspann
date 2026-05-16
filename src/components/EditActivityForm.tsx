@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { updateActivity } from "@/lib/store";
 import type { Activity } from "@/types";
+import { formatFlightTitle } from "@/lib/airport";
 
 const ACTIVITY_TYPES: { value: Activity["type"]; label: string }[] = [
   { value: "event", label: "Event" },
@@ -59,7 +60,7 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
     let finalTitle = title;
     if (type === "travel") {
       if (travelSubtype === "drive") finalTitle = `Drive: ${departureLocation} → ${arrivalLocation}`;
-      if (travelSubtype === "flight") finalTitle = `Flight ${flightNumber}: ${departureLocation} → ${arrivalLocation}`;
+      if (travelSubtype === "flight") finalTitle = formatFlightTitle(flightNumber, departureLocation, arrivalLocation);
       if (travelSubtype === "other") finalTitle = title;
     }
 
