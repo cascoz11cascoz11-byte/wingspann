@@ -50,13 +50,23 @@ export default function TripDetailPage() {
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [uploadingPhoto, setUploadingPhoto] = useState(false);
+  const [photoError, setPhotoError] = useState("");
+  const [isOwner, setIsOwner] = useState(false);
   const [membersCollapsed, setMembersCollapsed] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     async function load() {
+      const supabase = createClient();
+      const { data: { user } } = await supabase.auth.getUser();
       const t = await getTrip(id);
       setTrip(t ?? null);
+      if (t && user) {
+        const { data } = await supabase.from("trips").select("user_id").eq("id", id).single();
+        setIsOwner(data?.user_id === user.id);
+      } else {
+        setIsOwner(false);
+      }
     }
     load();
   }, [id]);
@@ -82,6 +92,7 @@ export default function TripDetailPage() {
     const file = e.target.files?.[0];
     if (!file || !trip) return;
     setUploadingPhoto(true);
+    setPhotoError("");
     try {
       const supabase = createClient();
       const ext = file.name.split(".").pop();
@@ -93,12 +104,20 @@ export default function TripDetailPage() {
       const { data: { publicUrl } } = supabase.storage
         .from("trip_image")
         .getPublicUrl(path);
-      await updateTrip(trip.id, { coverImage: publicUrl });
+      const coverUrl = `${publicUrl}?v=${Date.now()}`;
+      const ok = await updateTrip(trip.id, { coverImage: coverUrl });
+      if (!ok) {
+        setPhotoError("Could not save cover photo. You may not have permission to update this trip.");
+        return;
+      }
       await refreshTrip();
     } catch (err) {
       console.error(err);
+      setPhotoError(err instanceof Error ? err.message : "Upload failed. Please try again.");
+    } finally {
+      if (fileInputRef.current) fileInputRef.current.value = "";
+      setUploadingPhoto(false);
     }
-    setUploadingPhoto(false);
   }
 
   async function handleDelete() {
@@ -158,15 +177,28 @@ export default function TripDetailPage() {
           <p className="text-white/90 font-medium">{trip.destination}</p>
           <p className="text-white/70 text-sm">{formatDateRange(trip.startDate, trip.endDate)}</p>
           {trip.description && <p className="text-white/70 text-sm max-w-sm">{trip.description}</p>}
-          <button
-            type="button"
-            onClick={() => fileInputRef.current?.click()}
-            disabled={uploadingPhoto}
-            className="mt-2 flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 px-3 py-1.5 text-xs text-white hover:bg-white/30 transition"
-          >
-            {uploadingPhoto ? "Uploading..." : trip.coverImage ? "✏️ Change photo (use library only)" : "📷 Add cover photo (use library only)"}
-          </button>
-          <input ref={fileInputRef} type="file" accept="image/png,image/jpeg,image/webp,image/gif" className="hidden" onChange={handlePhotoUpload} />
+          {isOwner && (
+            <>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploadingPhoto}
+                className="mt-2 flex items-center gap-1.5 rounded-full bg-white/20 backdrop-blur-sm border border-white/30 px-3 py-1.5 text-xs text-white hover:bg-white/30 transition"
+              >
+                {uploadingPhoto ? "Uploading..." : trip.coverImage ? "✏️ Change photo (use library only)" : "📷 Add cover photo (use library only)"}
+              </button>
+              {photoError && (
+                <p className="text-xs text-red-200 max-w-xs">{photoError}</p>
+              )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/png,image/jpeg,image/webp,image/gif,image/heic"
+                className="hidden"
+                onChange={handlePhotoUpload}
+              />
+            </>
+          )}
         </div>
       </div>
 
