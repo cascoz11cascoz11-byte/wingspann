@@ -1,5 +1,5 @@
 Deno.serve(async (req) => {
-  const { token, type, tripName, activityName, sandbox } = await req.json();
+  const { token, type, tripName, activityName } = await req.json();
 
   const APNS_KEY_ID = Deno.env.get("APNS_KEY_ID")!;
   const APNS_TEAM_ID = Deno.env.get("APNS_TEAM_ID")!;
@@ -52,9 +52,7 @@ Deno.serve(async (req) => {
 
     const jwtToken = `${signingInput}.${signatureB64}`;
 
-    const host = sandbox
-      ? "https://api.sandbox.push.apple.com"
-      : "https://api.push.apple.com";
+    const host = "https://api.push.apple.com";
 
     const response = await fetch(`${host}/3/device/${token}`, {
       method: "POST",

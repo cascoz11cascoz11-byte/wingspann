@@ -17,7 +17,7 @@ async function sendAPNSNotification(token: string, title: string, body: string) 
       "Content-Type": "application/json",
       "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
     },
-    body: JSON.stringify({ token, type: "activity", tripName: title, activityName: body, sandbox: true }),
+    body: JSON.stringify({ token, type: "activity", tripName: title, activityName: body, sandbox: false }),
   });
 }
 

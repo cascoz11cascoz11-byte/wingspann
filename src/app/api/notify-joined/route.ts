@@ -17,7 +17,7 @@ export async function POST(req: Request) {
         "Content-Type": "application/json",
         "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
       },
-      body: JSON.stringify({ token, type: "join", tripName: title, activityName: body, sandbox: true }),
+      body: JSON.stringify({ token, type: "join", tripName: title, activityName: body, sandbox: false }),
     });
   }
 

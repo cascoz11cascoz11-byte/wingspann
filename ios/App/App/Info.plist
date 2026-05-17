@@ -53,5 +53,5 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true />
-<key>aps-environment</key><string>development</string></dict>
+<key>aps-environment</key><string>production</string></dict>
 </plist>
