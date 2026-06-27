@@ -275,7 +275,14 @@ export default function TripDetailPage() {
                 />
               </div>
             </div>
-            <ActivityList tripId={trip.id} activities={trip.activities} members={trip.members} onUpdate={refreshTrip} />
+            <ActivityList
+              tripId={trip.id}
+              activities={trip.activities}
+              members={trip.members}
+              tripStartDate={trip.startDate}
+              tripEndDate={trip.endDate}
+              onUpdate={refreshTrip}
+            />
           </section>
         </div>
       )}

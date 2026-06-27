@@ -4,6 +4,9 @@ import { removeActivity, updateActivityParticipants } from "@/lib/store";
 import type { Activity, FamilyMember } from "@/types";
 import { formatFlightRoute, formatFlightTitle } from "@/lib/airport";
 import { EditActivityForm } from "./EditActivityForm";
+import { TripItineraryCalendar } from "./TripItineraryCalendar";
+
+type ItineraryView = "list" | "calendar";
 
 function getActivityDisplayTitle(activity: Activity): string {
   if (activity.travelSubtype === "flight") {
@@ -16,7 +19,14 @@ function getActivityDisplayTitle(activity: Activity): string {
   return activity.title;
 }
 
-interface ActivityListProps { tripId: string; activities: Activity[]; members: FamilyMember[]; onUpdate: () => void; }
+interface ActivityListProps {
+  tripId: string;
+  activities: Activity[];
+  members: FamilyMember[];
+  tripStartDate: string;
+  tripEndDate: string;
+  onUpdate: () => void;
+}
 
 const TYPE_LABELS: Record<Activity["type"], string> = { event: "Event", meal: "Meal", travel: "Travel", stay: "Stay", other: "Other" };
 const TYPE_COLORS: Record<Activity["type"], string> = { event: "bg-sky-100 text-sky-700", meal: "bg-amber-100 text-amber-700", travel: "bg-slate-200 text-slate-700", stay: "bg-purple-100 text-purple-700", other: "bg-slate-100 text-slate-600" };
@@ -227,11 +237,12 @@ function FlightStatusCard({ flightNumber, date }: { flightNumber: string; date: 
   );
 }
 
-export function ActivityList({ tripId, activities = [], members = [], onUpdate }: ActivityListProps) {
+export function ActivityList({ tripId, activities = [], members = [], tripStartDate, tripEndDate, onUpdate }: ActivityListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [savingParticipants, setSavingParticipants] = useState(false);
   const [localParticipants, setLocalParticipants] = useState<Record<string, string[]>>({});
+  const [view, setView] = useState<ItineraryView>("list");
   const byDay = useMemo(() => groupActivitiesByDay(activities), [activities]);
 
   function getParticipants(activity: Activity): string[] {
@@ -260,10 +271,24 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
   }
 
   if (activities.length === 0) {
-    return <div className="card border-dashed border-sky-200 p-6 text-center text-slate-500">No activities yet. Add your first one to build the itinerary.</div>;
+    return (
+      <div className="space-y-4">
+        <ItineraryViewToggle view={view} onChange={setView} />
+        {view === "list" ? (
+          <div className="card border-dashed border-sky-200 p-6 text-center text-slate-500">No activities yet. Add your first one to build the itinerary.</div>
+        ) : (
+          <TripItineraryCalendar activities={[]} tripStartDate={tripStartDate} tripEndDate={tripEndDate} />
+        )}
+      </div>
+    );
   }
 
   return (
+    <div className="space-y-4">
+      <ItineraryViewToggle view={view} onChange={setView} />
+      {view === "calendar" ? (
+        <TripItineraryCalendar activities={activities} tripStartDate={tripStartDate} tripEndDate={tripEndDate} />
+      ) : (
     <div className="space-y-8">
       {byDay.map(({ date, activities: dayActivities }) => (
         <section key={date}>
@@ -378,6 +403,25 @@ export function ActivityList({ tripId, activities = [], members = [], onUpdate }
           </ul>
         </section>
       ))}
+    </div>
+      )}
+    </div>
+  );
+}
+
+function ItineraryViewToggle({ view, onChange }: { view: ItineraryView; onChange: (v: ItineraryView) => void }) {
+  const btn = (mode: ItineraryView, label: string) =>
+    "rounded-xl border-2 px-3 py-1.5 text-sm font-medium transition "
+    + (view === mode ? "border-sky-400 bg-sky-50 text-sky-700" : "border-slate-200 text-slate-600 hover:border-sky-200");
+
+  return (
+    <div className="flex gap-2">
+      <button type="button" onClick={() => onChange("list")} className={btn("list", "List")}>
+        📋 List
+      </button>
+      <button type="button" onClick={() => onChange("calendar")} className={btn("calendar", "Calendar")}>
+        📅 Calendar
+      </button>
     </div>
   );
 }
