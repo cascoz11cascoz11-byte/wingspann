@@ -148,7 +148,7 @@ export function TripWishlist({ tripId, tripStartDate, tripEndDate, sourceBoardId
       <button
         type="button"
         onClick={() => { setOpen(true); setView("list"); }}
-        className="flex items-center gap-1.5 rounded-xl border-2 border-slate-200 px-3 py-2 text-sm font-medium text-slate-600 hover:border-sky-300 hover:text-sky-600 transition"
+        className="inline-flex items-center gap-1 rounded-xl border-2 border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-sky-200 transition"
       >
         ✨ Wishlist
         {items.length > 0 && (

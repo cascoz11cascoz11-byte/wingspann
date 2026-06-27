@@ -246,34 +246,32 @@ export default function TripDetailPage() {
           </section>
 
           <section>
-            <div className="mb-4 flex items-center justify-between">
+            <div className="mb-3 flex items-center justify-between">
               <h2 className="font-display text-lg font-semibold text-sky-700">Itinerary</h2>
-              {/* ── All three action buttons in a row ── */}
-              <div className="flex gap-2">
-                {/* ✨ NEW: Wishlist popup */}
-                <TripWishlist
-                  tripId={trip.id}
-                  tripStartDate={trip.startDate}
-                  tripEndDate={trip.endDate}
-                  sourceBoardId={trip.sourceBoardId}
-                  onActivityAdded={refreshTrip}
-                />
-                <ActivityFinder
-                  tripId={trip.id}
-                  tripDestination={trip.destination}
-                  tripStartDate={trip.startDate}
-                  tripEndDate={trip.endDate}
-                  stays={trip.activities.filter((a) => a.type === "stay")}
-                  onAdded={refreshTrip}
-                />
-                <AddActivity
-                  tripId={trip.id}
-                  tripStartDate={trip.startDate}
-                  tripEndDate={trip.endDate}
-                  sourceBoardId={trip.sourceBoardId}
-                  onAdded={refreshTrip}
-                />
-              </div>
+              <AddActivity
+                tripId={trip.id}
+                tripStartDate={trip.startDate}
+                tripEndDate={trip.endDate}
+                sourceBoardId={trip.sourceBoardId}
+                onAdded={refreshTrip}
+              />
+            </div>
+            <div className="mb-4 flex gap-2">
+              <TripWishlist
+                tripId={trip.id}
+                tripStartDate={trip.startDate}
+                tripEndDate={trip.endDate}
+                sourceBoardId={trip.sourceBoardId}
+                onActivityAdded={refreshTrip}
+              />
+              <ActivityFinder
+                tripId={trip.id}
+                tripDestination={trip.destination}
+                tripStartDate={trip.startDate}
+                tripEndDate={trip.endDate}
+                stays={trip.activities.filter((a) => a.type === "stay")}
+                onAdded={refreshTrip}
+              />
             </div>
             <ActivityList
               tripId={trip.id}

@@ -269,8 +269,8 @@ export function ActivityFinder({ tripId, tripDestination, tripStartDate, tripEnd
   }
 
   return (
-    <div>
-      <button type="button" onClick={() => setOpen(true)} className="btn-secondary text-sm">
+    <>
+      <button type="button" onClick={() => setOpen(true)} className="rounded-xl border-2 border-slate-200 px-3 py-1.5 text-sm font-medium text-slate-600 hover:border-sky-200 transition">
         🥱 I&apos;m Bored!
       </button>
       {open && (
@@ -368,6 +368,6 @@ export function ActivityFinder({ tripId, tripDestination, tripStartDate, tripEnd
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }
