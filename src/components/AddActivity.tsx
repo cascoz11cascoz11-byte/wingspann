@@ -389,7 +389,7 @@ export function AddActivity({ tripId, tripStartDate, tripEndDate, sourceBoardId,
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-slate-700">Check out</label>
-                        <input type="date" className="input mt-1" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} required />
+                        <input type="date" className="input mt-1" value={checkOutDate} onChange={(e) => setCheckOutDate(e.target.value)} min={date} required />
                         {checkOutWarning && <p className="text-xs text-amber-600 mt-1">{checkOutWarning}</p>}
                       </div>
                     </div>

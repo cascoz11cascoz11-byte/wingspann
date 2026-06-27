@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect, useCallback } from "react";
 import { removeActivity, updateActivityParticipants } from "@/lib/store";
 import type { Activity, FamilyMember } from "@/types";
 import { formatFlightRoute, formatFlightTitle } from "@/lib/airport";
+import { formatStayDateRange } from "@/lib/activity-dates";
 import { EditActivityForm } from "./EditActivityForm";
 import { TripItineraryCalendar } from "./TripItineraryCalendar";
 
@@ -321,6 +322,11 @@ export function ActivityList({ tripId, activities = [], members = [], tripStartD
                   <div className="space-y-2">
                     {activity.description && <p className="text-sm text-slate-600">{activity.description}</p>}
 
+                    {activity.type === "stay" && activity.checkOutDate && (
+                      <div className="rounded-xl bg-purple-50 px-3 py-2 text-sm text-purple-800">
+                        🏨 {formatStayDateRange(activity.date, activity.checkOutDate)}
+                      </div>
+                    )}
                     {activity.travelSubtype === "drive" && activity.driveTime && activity.time && (
                       <div className="rounded-xl bg-orange-50 px-3 py-2 text-sm text-orange-800">
                         🚗 Departing at {formatTime(activity.time)} · {activity.driveTime}

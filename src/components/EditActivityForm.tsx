@@ -25,6 +25,7 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
   const [title, setTitle] = useState(activity.title);
   const [description, setDescription] = useState(activity.description ?? "");
   const [date, setDate] = useState(activity.date);
+  const [checkOutDate, setCheckOutDate] = useState(activity.checkOutDate ?? "");
   const [time, setTime] = useState(activity.time ?? "");
   const [endTime, setEndTime] = useState(activity.endTime ?? "");
   const [location, setLocation] = useState(activity.location ?? "");
@@ -41,6 +42,7 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
     setTitle(activity.title);
     setDescription(activity.description ?? "");
     setDate(activity.date);
+    setCheckOutDate(activity.checkOutDate ?? "");
     setTime(activity.time ?? "");
     setEndTime(activity.endTime ?? "");
     setLocation(activity.location ?? "");
@@ -66,10 +68,11 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
 
     await updateActivity(tripId, activity.id, {
       title: finalTitle,
-      description: description || undefined,
+      description: type === "stay" ? undefined : description || undefined,
       date,
-      time: time || undefined,
-      endTime: endTime || undefined,
+      checkOutDate: type === "stay" ? checkOutDate || undefined : undefined,
+      time: type === "stay" ? undefined : time || undefined,
+      endTime: type === "stay" ? undefined : endTime || undefined,
       location: location || undefined,
       link: link || undefined,
       type,
@@ -188,7 +191,66 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
         </>
       )}
 
-      {(type !== "travel" || travelSubtype === "other") && (
+      {type === "stay" && (
+        <>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Name</label>
+            <input
+              type="text"
+              className="input mt-1"
+              placeholder="e.g. Beach House, Airbnb"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              required
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Location</label>
+            <input
+              type="text"
+              className="input mt-1"
+              placeholder="Where?"
+              value={location}
+              onChange={(e) => setLocation(e.target.value)}
+            />
+          </div>
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Check in</label>
+              <input
+                type="date"
+                className="input mt-1"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700">Check out</label>
+              <input
+                type="date"
+                className="input mt-1"
+                value={checkOutDate}
+                onChange={(e) => setCheckOutDate(e.target.value)}
+                min={date}
+                required
+              />
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-slate-700">Link (optional)</label>
+            <input
+              type="text"
+              className="input mt-1"
+              placeholder="Airbnb, VRBO, hotel link..."
+              value={link}
+              onChange={(e) => setLink(e.target.value)}
+            />
+          </div>
+        </>
+      )}
+
+      {(type !== "travel" || travelSubtype === "other") && type !== "stay" && (
         <>
           <div>
             <label className="block text-sm font-medium text-slate-700">Title</label>
@@ -257,6 +319,7 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
         </div>
       )}
 
+      {type !== "stay" && (
       <div>
         <label className="block text-sm font-medium text-slate-700">Description (optional)</label>
         <textarea
@@ -267,7 +330,9 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
           onChange={(e) => setDescription(e.target.value)}
         />
       </div>
+      )}
 
+      {type !== "stay" && (
       <div>
         <label className="block text-sm font-medium text-slate-700">Link (optional)</label>
         <input
@@ -278,6 +343,7 @@ export function EditActivityForm({ tripId, activity, onSaved, onCancel }: EditAc
           onChange={(e) => setLink(e.target.value)}
         />
       </div>
+      )}
 
       <div className="flex gap-2 pt-2">
         <button type="submit" className="btn-primary text-sm" disabled={saving}>

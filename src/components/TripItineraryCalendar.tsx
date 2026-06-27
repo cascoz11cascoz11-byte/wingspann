@@ -3,6 +3,7 @@
 import { useMemo, useState } from "react";
 import type { Activity } from "@/types";
 import { formatFlightTitle } from "@/lib/airport";
+import { formatStayDateRange, getActivityDates } from "@/lib/activity-dates";
 
 interface TripItineraryCalendarProps {
   activities: Activity[];
@@ -91,9 +92,11 @@ export function TripItineraryCalendar({ activities, tripStartDate, tripEndDate }
   const activityMap = useMemo(() => {
     const map = new Map<string, Activity[]>();
     for (const activity of activities) {
-      const list = map.get(activity.date) ?? [];
-      list.push(activity);
-      map.set(activity.date, list);
+      for (const dateKey of getActivityDates(activity)) {
+        const list = map.get(dateKey) ?? [];
+        list.push(activity);
+        map.set(dateKey, list);
+      }
     }
     for (const [, list] of Array.from(map)) {
       list.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
@@ -202,7 +205,10 @@ export function TripItineraryCalendar({ activities, tripStartDate, tripEndDate }
               {selectedActivities.map((activity) => (
                 <div key={activity.id} className="rounded-xl bg-white border border-slate-100 p-3 space-y-1">
                   <p className="text-sm font-medium text-slate-800">{getActivityLabel(activity)}</p>
-                  {activity.time && (
+                  {activity.type === "stay" && activity.checkOutDate && (
+                    <p className="text-xs text-slate-500">🏨 {formatStayDateRange(activity.date, activity.checkOutDate)}</p>
+                  )}
+                  {activity.time && activity.type !== "stay" && (
                     <p className="text-xs text-slate-500">{formatTime(activity.time)}{activity.endTime ? " – " + formatTime(activity.endTime) : ""}</p>
                   )}
                   {activity.location && (

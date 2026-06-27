@@ -233,7 +233,7 @@ export async function addActivity(tripId: string, activity: Omit<Activity, "id" 
 }
 
 export async function updateActivity(tripId: string, activityId: string, updates: Partial<Activity>): Promise<Activity | undefined> {
-  const { data } = await db().from("activities").update({
+  const patch: Record<string, unknown> = {
     title: updates.title,
     description: updates.description,
     date: updates.date,
@@ -248,7 +248,15 @@ export async function updateActivity(tripId: string, activityId: string, updates
     arrival_time: updates.arrivalTime,
     flight_number: updates.flightNumber,
     drive_time: updates.driveTime,
-  }).eq("id", activityId).eq("trip_id", tripId).select().single();
+  };
+  if (updates.type === "stay") {
+    patch.check_out_date = updates.checkOutDate ?? null;
+  } else if (updates.type !== undefined) {
+    patch.check_out_date = null;
+  } else if (updates.checkOutDate !== undefined) {
+    patch.check_out_date = updates.checkOutDate;
+  }
+  const { data } = await db().from("activities").update(patch).eq("id", activityId).eq("trip_id", tripId).select().single();
   return data ? mapActivity(data) : undefined;
 }
 
