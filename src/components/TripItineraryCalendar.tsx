@@ -95,7 +95,7 @@ export function TripItineraryCalendar({ activities, tripStartDate, tripEndDate }
       list.push(activity);
       map.set(activity.date, list);
     }
-    for (const [, list] of map) {
+    for (const [, list] of Array.from(map)) {
       list.sort((a, b) => (a.time || "").localeCompare(b.time || ""));
     }
     return map;
