@@ -4,11 +4,18 @@ import { useMemo, useState } from "react";
 import type { Activity } from "@/types";
 import { formatFlightTitle } from "@/lib/airport";
 import { formatStayDateRange, getActivityDates } from "@/lib/activity-dates";
+import { EditActivityForm } from "./EditActivityForm";
 
 interface TripItineraryCalendarProps {
   activities: Activity[];
   tripStartDate: string;
   tripEndDate: string;
+  tripId: string;
+  editingId: string | null;
+  onEdit: (id: string) => void;
+  onCancelEdit: () => void;
+  onSaved: () => void;
+  onRemove: (id: string) => void;
 }
 
 const TYPE_COLORS: Record<Activity["type"], string> = {
@@ -67,7 +74,17 @@ function getInitialMonth(tripStartDate: string, tripEndDate: string) {
   return { year: start.getFullYear(), month: start.getMonth() };
 }
 
-export function TripItineraryCalendar({ activities, tripStartDate, tripEndDate }: TripItineraryCalendarProps) {
+export function TripItineraryCalendar({
+  activities,
+  tripStartDate,
+  tripEndDate,
+  tripId,
+  editingId,
+  onEdit,
+  onCancelEdit,
+  onSaved,
+  onRemove,
+}: TripItineraryCalendarProps) {
   const initial = getInitialMonth(tripStartDate, tripEndDate);
   const today = new Date();
   const [year, setYear] = useState(initial.year);
@@ -203,25 +220,41 @@ export function TripItineraryCalendar({ activities, tripStartDate, tripEndDate }
           ) : (
             <div className="space-y-2">
               {selectedActivities.map((activity) => (
-                <div key={activity.id} className="rounded-xl bg-white border border-slate-100 p-3 space-y-1">
-                  <p className="text-sm font-medium text-slate-800">{getActivityLabel(activity)}</p>
-                  {activity.type === "stay" && activity.checkOutDate && (
-                    <p className="text-xs text-slate-500">🏨 {formatStayDateRange(activity.date, activity.checkOutDate)}</p>
-                  )}
-                  {activity.time && activity.type !== "stay" && (
-                    <p className="text-xs text-slate-500">{formatTime(activity.time)}{activity.endTime ? " – " + formatTime(activity.endTime) : ""}</p>
-                  )}
-                  {activity.location && (
-                    <p className="text-xs text-slate-500 truncate">📍 {activity.location}</p>
-                  )}
-                </div>
+                editingId === activity.id ? (
+                  <EditActivityForm
+                    key={activity.id}
+                    tripId={tripId}
+                    activity={activity}
+                    onSaved={onSaved}
+                    onCancel={onCancelEdit}
+                  />
+                ) : (
+                  <div key={activity.id} className="rounded-xl bg-white border border-slate-100 p-3 space-y-2">
+                    <div className="flex items-start justify-between gap-2">
+                      <p className="text-sm font-medium text-slate-800">{getActivityLabel(activity)}</p>
+                      <div className="flex items-center gap-2 shrink-0">
+                        <button type="button" onClick={() => onEdit(activity.id)} className="text-xs text-sky-600 hover:underline">Edit</button>
+                        <button type="button" onClick={() => onRemove(activity.id)} className="text-xs text-orange-600 hover:text-orange-700">Remove</button>
+                      </div>
+                    </div>
+                    {activity.type === "stay" && activity.checkOutDate && (
+                      <p className="text-xs text-slate-500">🏨 {formatStayDateRange(activity.date, activity.checkOutDate)}</p>
+                    )}
+                    {activity.time && activity.type !== "stay" && (
+                      <p className="text-xs text-slate-500">{formatTime(activity.time)}{activity.endTime ? " – " + formatTime(activity.endTime) : ""}</p>
+                    )}
+                    {activity.location && (
+                      <p className="text-xs text-slate-500 truncate">📍 {activity.location}</p>
+                    )}
+                  </div>
+                )
               ))}
             </div>
           )}
         </div>
       )}
 
-      <p className="text-xs text-slate-400">Light blue days are within your trip dates. Tap a day to see its activities.</p>
+      <p className="text-xs text-slate-400">Light blue days are within your trip dates. Tap a day to see and edit its activities.</p>
     </div>
   );
 }

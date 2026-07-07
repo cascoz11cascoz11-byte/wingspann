@@ -12,6 +12,7 @@ export default function NewTripPage() {
   const [startDate, setStartDate] = useState("");
   const [endDate, setEndDate] = useState("");
   const [description, setDescription] = useState("");
+  const [expensesEnabled, setExpensesEnabled] = useState(true);
   const [saving, setSaving] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
@@ -24,6 +25,7 @@ export default function NewTripPage() {
       endDate,
       description: description || undefined,
       createdBy: "you@example.com",
+      expensesEnabled,
     });
     router.push(`/trips/${trip.id}`);
   }
@@ -112,6 +114,18 @@ export default function NewTripPage() {
             onChange={(e) => setDescription(e.target.value)}
           />
         </div>
+        <label className="flex items-start justify-between gap-4 rounded-xl border-2 border-slate-200 px-4 py-3 cursor-pointer hover:border-sky-200 transition">
+          <div>
+            <p className="text-sm font-medium text-slate-700">Track expenses</p>
+            <p className="text-xs text-slate-500 mt-0.5">Show the Expenses tab to split costs with your group</p>
+          </div>
+          <input
+            type="checkbox"
+            checked={expensesEnabled}
+            onChange={(e) => setExpensesEnabled(e.target.checked)}
+            className="mt-1 h-4 w-4 rounded border-slate-300 text-sky-500 focus:ring-sky-400"
+          />
+        </label>
         <div className="flex gap-3 pt-2">
           <button type="submit" className="btn-primary" disabled={saving}>
             {saving ? "Saving..." : "Create trip"}

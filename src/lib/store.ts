@@ -153,6 +153,7 @@ export async function createTrip(data: Omit<Trip, "id" | "createdAt" | "activiti
     created_by: data.createdBy,
     user_id: user?.id,
     source_board_id: data.sourceBoardId ?? null,
+    expenses_enabled: data.expensesEnabled ?? true,
   }).select("*, members(*), activities(*, activity_participants(*))").single();
   if (error) throw new Error(error.message);
 
@@ -584,6 +585,7 @@ function mapTrip(data: any): Trip {
     createdBy: data.created_by,
     inviteCode: data.invite_code,
     sourceBoardId: data.source_board_id ?? undefined,
+    expensesEnabled: data.expenses_enabled ?? true,
     members: (data.members ?? []).map((m: any) => ({
       id: m.id,
       name: m.name,

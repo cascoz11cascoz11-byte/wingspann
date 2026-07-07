@@ -42,4 +42,5 @@ export interface Trip {
   inviteCode?: string;
   sourceBoardId?: string;
   isInvited?: boolean;
+  expensesEnabled?: boolean;
 }

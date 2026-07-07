@@ -278,7 +278,17 @@ export function ActivityList({ tripId, activities = [], members = [], tripStartD
         {view === "list" ? (
           <div className="card border-dashed border-sky-200 p-6 text-center text-slate-500">No activities yet. Add your first one to build the itinerary.</div>
         ) : (
-          <TripItineraryCalendar activities={[]} tripStartDate={tripStartDate} tripEndDate={tripEndDate} />
+          <TripItineraryCalendar
+            activities={[]}
+            tripStartDate={tripStartDate}
+            tripEndDate={tripEndDate}
+            tripId={tripId}
+            editingId={editingId}
+            onEdit={setEditingId}
+            onCancelEdit={() => setEditingId(null)}
+            onSaved={() => { setEditingId(null); onUpdate(); }}
+            onRemove={handleRemove}
+          />
         )}
       </div>
     );
@@ -288,7 +298,17 @@ export function ActivityList({ tripId, activities = [], members = [], tripStartD
     <div className="space-y-4">
       <ItineraryViewToggle view={view} onChange={setView} />
       {view === "calendar" ? (
-        <TripItineraryCalendar activities={activities} tripStartDate={tripStartDate} tripEndDate={tripEndDate} />
+        <TripItineraryCalendar
+          activities={activities}
+          tripStartDate={tripStartDate}
+          tripEndDate={tripEndDate}
+          tripId={tripId}
+          editingId={editingId}
+          onEdit={setEditingId}
+          onCancelEdit={() => setEditingId(null)}
+          onSaved={() => { setEditingId(null); onUpdate(); }}
+          onRemove={handleRemove}
+        />
       ) : (
     <div className="space-y-8">
       {byDay.map(({ date, activities: dayActivities }) => (

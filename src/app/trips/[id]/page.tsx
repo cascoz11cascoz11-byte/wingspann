@@ -217,9 +217,11 @@ export default function TripDetailPage() {
         <button type="button" onClick={() => setActiveTab("map")} className={tabClass("map")}>
           Map
         </button>
-        <button type="button" onClick={() => setActiveTab("expenses")} className={tabClass("expenses")}>
-          Expenses
-        </button>
+        {trip.expensesEnabled !== false && (
+          <button type="button" onClick={() => setActiveTab("expenses")} className={tabClass("expenses")}>
+            Expenses
+          </button>
+        )}
       </div>
 
       {activeTab === "itinerary" && (
@@ -286,10 +288,17 @@ export default function TripDetailPage() {
       )}
 
       {activeTab === "map" && (
-        <MapTab activities={trip.activities} destination={trip.destination} />
+        <MapTab
+          activities={trip.activities}
+          destination={trip.destination}
+          tripId={trip.id}
+          tripStartDate={trip.startDate}
+          tripEndDate={trip.endDate}
+          onAdded={refreshTrip}
+        />
       )}
 
-      {activeTab === "expenses" && (
+      {activeTab === "expenses" && trip.expensesEnabled !== false && (
         <ExpenseTracker tripId={trip.id} members={trip.members} />
       )}
 
