@@ -1,13 +1,13 @@
 "use client";
 import { useState, useMemo, useEffect, useCallback } from "react";
-import { removeActivity, updateActivityParticipants } from "@/lib/store";
+import { removeActivity, updateActivityParticipants, updateActivityCost } from "@/lib/store";
 import type { Activity, FamilyMember } from "@/types";
 import { formatFlightRoute, formatFlightTitle } from "@/lib/airport";
 import { formatStayDateRange } from "@/lib/activity-dates";
 import { EditActivityForm } from "./EditActivityForm";
 import { TripItineraryCalendar } from "./TripItineraryCalendar";
 
-type ItineraryView = "list" | "calendar";
+type ItineraryView = "list" | "calendar" | "table";
 
 function getActivityDisplayTitle(activity: Activity): string {
   if (activity.travelSubtype === "flight") {
@@ -26,6 +26,7 @@ interface ActivityListProps {
   members: FamilyMember[];
   tripStartDate: string;
   tripEndDate: string;
+  expensesEnabled?: boolean;
   onUpdate: () => void;
 }
 
@@ -238,7 +239,114 @@ function FlightStatusCard({ flightNumber, date }: { flightNumber: string; date: 
   );
 }
 
-export function ActivityList({ tripId, activities = [], members = [], tripStartDate, tripEndDate, onUpdate }: ActivityListProps) {
+function CostCell({ activity, onSaved }: { activity: Activity; onSaved: () => void }) {
+  const [editing, setEditing] = useState(false);
+  const [value, setValue] = useState(activity.cost !== undefined ? String(activity.cost) : "");
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    setValue(activity.cost !== undefined ? String(activity.cost) : "");
+  }, [activity.cost]);
+
+  async function save() {
+    setSaving(true);
+    const parsed = value.trim() === "" ? null : Number(value);
+    if (parsed !== null && Number.isNaN(parsed)) {
+      setSaving(false);
+      setEditing(false);
+      setValue(activity.cost !== undefined ? String(activity.cost) : "");
+      return;
+    }
+    await updateActivityCost(activity.id, parsed);
+    setSaving(false);
+    setEditing(false);
+    onSaved();
+  }
+
+  if (editing) {
+    return (
+      <input
+        type="number"
+        step="0.01"
+        autoFocus
+        value={value}
+        onChange={(e) => setValue(e.target.value)}
+        onBlur={save}
+        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+        disabled={saving}
+        className="w-24 rounded-lg border border-sky-300 px-2 py-1 text-sm text-right"
+        placeholder="0.00"
+      />
+    );
+  }
+
+  return (
+    <button
+      type="button"
+      onClick={() => setEditing(true)}
+      className="w-24 rounded-lg px-2 py-1 text-sm text-right hover:bg-sky-50 transition text-slate-700"
+    >
+      {activity.cost !== undefined ? "$" + activity.cost.toFixed(2) : <span className="text-slate-400">+ Add</span>}
+    </button>
+  );
+}
+
+function ItineraryTable({
+  activities,
+  expensesEnabled,
+  onUpdate,
+}: {
+  activities: Activity[];
+  expensesEnabled: boolean;
+  onUpdate: () => void;
+}) {
+  const total = activities.reduce((sum, a) => sum + (a.cost ?? 0), 0);
+
+  return (
+    <div className="card overflow-x-auto p-0">
+      <table className="w-full text-sm">
+        <thead>
+          <tr className="border-b border-slate-200 text-left text-xs font-semibold uppercase tracking-wide text-slate-500">
+            <th className="px-4 py-3">Date</th>
+            <th className="px-4 py-3">Activity</th>
+            <th className="px-4 py-3">Type</th>
+            <th className="px-4 py-3">Location</th>
+            {expensesEnabled && <th className="px-4 py-3 text-right">Cost</th>}
+          </tr>
+        </thead>
+        <tbody>
+          {activities.map((activity) => (
+            <tr key={activity.id} className="border-b border-slate-100 last:border-0 hover:bg-slate-50/70 transition">
+              <td className="px-4 py-2.5 whitespace-nowrap text-slate-600">{formatDate(activity.date)}</td>
+              <td className="px-4 py-2.5 font-medium text-slate-800">{getActivityDisplayTitle(activity)}</td>
+              <td className="px-4 py-2.5">
+                <span className={"rounded-full px-2 py-0.5 text-xs font-medium " + TYPE_COLORS[activity.type]}>
+                  {TYPE_LABELS[activity.type]}
+                </span>
+              </td>
+              <td className="px-4 py-2.5 text-slate-500 truncate max-w-[200px]">{activity.location ?? "—"}</td>
+              {expensesEnabled && (
+                <td className="px-4 py-2.5 text-right">
+                  <CostCell activity={activity} onSaved={onUpdate} />
+                </td>
+              )}
+            </tr>
+          ))}
+        </tbody>
+        {expensesEnabled && (
+          <tfoot>
+            <tr className="border-t-2 border-slate-200 font-semibold text-slate-800">
+              <td className="px-4 py-3" colSpan={4}>Total</td>
+              <td className="px-4 py-3 text-right">${total.toFixed(2)}</td>
+            </tr>
+          </tfoot>
+        )}
+      </table>
+    </div>
+  );
+}
+
+export function ActivityList({ tripId, activities = [], members = [], tripStartDate, tripEndDate, expensesEnabled = true, onUpdate }: ActivityListProps) {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [assigningId, setAssigningId] = useState<string | null>(null);
   const [savingParticipants, setSavingParticipants] = useState(false);
@@ -277,7 +385,7 @@ export function ActivityList({ tripId, activities = [], members = [], tripStartD
         <ItineraryViewToggle view={view} onChange={setView} />
         {view === "list" ? (
           <div className="card border-dashed border-sky-200 p-6 text-center text-slate-500">No activities yet. Add your first one to build the itinerary.</div>
-        ) : (
+        ) : view === "calendar" ? (
           <TripItineraryCalendar
             activities={[]}
             tripStartDate={tripStartDate}
@@ -289,6 +397,8 @@ export function ActivityList({ tripId, activities = [], members = [], tripStartD
             onSaved={() => { setEditingId(null); onUpdate(); }}
             onRemove={handleRemove}
           />
+        ) : (
+          <div className="card border-dashed border-sky-200 p-6 text-center text-slate-500">No activities yet.</div>
         )}
       </div>
     );
@@ -309,6 +419,8 @@ export function ActivityList({ tripId, activities = [], members = [], tripStartD
           onSaved={() => { setEditingId(null); onUpdate(); }}
           onRemove={handleRemove}
         />
+      ) : view === "table" ? (
+        <ItineraryTable activities={activities} expensesEnabled={expensesEnabled} onUpdate={onUpdate} />
       ) : (
     <div className="space-y-8">
       {byDay.map(({ date, activities: dayActivities }) => (
@@ -320,7 +432,6 @@ export function ActivityList({ tripId, activities = [], members = [], tripStartD
             ) : (
               <li key={activity.id} className="card overflow-hidden">
                 <div className="p-4 space-y-3">
-                  {/* Top row: title + action buttons */}
                   <div className="flex items-start justify-between gap-2">
                     <div className="flex flex-wrap items-center gap-2 flex-1 min-w-0">
                       <h4 className="font-medium text-slate-800 break-words">{getActivityDisplayTitle(activity)}</h4>
@@ -331,14 +442,12 @@ export function ActivityList({ tripId, activities = [], members = [], tripStartD
                         <WeatherPill location={activity.location} date={activity.date} time={activity.time} endTime={activity.endTime} />
                       )}
                     </div>
-                    {/* Action buttons - always visible, won't overflow */}
                     <div className="flex items-center gap-3 shrink-0 ml-2">
                       <button type="button" onClick={() => setEditingId(activity.id)} className="text-xs text-sky-600 hover:underline">Edit</button>
                       <button type="button" onClick={() => handleRemove(activity.id)} className="text-xs text-orange-600 hover:text-orange-700">Remove</button>
                     </div>
                   </div>
 
-                  {/* Body */}
                   <div className="space-y-2">
                     {activity.description && <p className="text-sm text-slate-600">{activity.description}</p>}
 
@@ -419,7 +528,6 @@ export function ActivityList({ tripId, activities = [], members = [], tripStartD
                     )}
                   </div>
 
-                  {/* Assign people button */}
                   <button type="button" onClick={() => setAssigningId(assigningId === activity.id ? null : activity.id)} className="text-xs text-slate-400 hover:text-sky-600 transition">
                     👥 Assign people
                   </button>
@@ -447,6 +555,9 @@ function ItineraryViewToggle({ view, onChange }: { view: ItineraryView; onChange
       </button>
       <button type="button" onClick={() => onChange("calendar")} className={btn("calendar", "Calendar")}>
         📅 Calendar
+      </button>
+      <button type="button" onClick={() => onChange("table")} className={btn("table", "Table")}>
+        📊 Table
       </button>
     </div>
   );
