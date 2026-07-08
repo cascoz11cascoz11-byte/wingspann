@@ -220,6 +220,7 @@ export async function addActivity(tripId: string, activity: Omit<Activity, "id" 
     arrival_time: activity.arrivalTime,
     flight_number: activity.flightNumber,
     drive_time: activity.driveTime,
+    cost: activity.cost,
   }).select().single();
 
   if (data) {
@@ -250,6 +251,9 @@ export async function updateActivity(tripId: string, activityId: string, updates
     flight_number: updates.flightNumber,
     drive_time: updates.driveTime,
   };
+  if (updates.cost !== undefined) {
+    patch.cost = updates.cost;
+  }
   if (updates.type === "stay") {
     patch.check_out_date = updates.checkOutDate ?? null;
   } else if (updates.type !== undefined) {
@@ -268,6 +272,11 @@ export async function updateActivityParticipants(activityId: string, memberIds: 
   const { error } = await supabase.from("activity_participants").insert(
     memberIds.map((memberId) => ({ activity_id: activityId, member_id: memberId }))
   );
+  return !error;
+}
+
+export async function updateActivityCost(activityId: string, cost: number | null): Promise<boolean> {
+  const { error } = await db().from("activities").update({ cost }).eq("id", activityId);
   return !error;
 }
 
@@ -618,6 +627,7 @@ function mapActivity(data: any): Activity {
     flightNumber: data.flight_number,
     driveTime: data.drive_time,
     participants: (data.activity_participants ?? []).map((p: any) => p.member_id),
+    cost: data.cost !== null && data.cost !== undefined ? Number(data.cost) : undefined,
     createdAt: data.created_at,
   };
 }
@@ -739,7 +749,7 @@ function mapFriend(data: any): Friend {
     avatarUrl: data.avatar_url,
     createdAt: data.created_at,
   };
-} 
+}
 // ─── Trip Wishlist ────────────────────────────────────────────────────────────
 // Add these to the bottom of src/lib/store.ts
 

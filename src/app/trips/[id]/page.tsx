@@ -281,6 +281,7 @@ export default function TripDetailPage() {
               members={trip.members}
               tripStartDate={trip.startDate}
               tripEndDate={trip.endDate}
+              expensesEnabled={trip.expensesEnabled !== false}
               onUpdate={refreshTrip}
             />
           </section>

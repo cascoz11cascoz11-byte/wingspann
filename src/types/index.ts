@@ -24,6 +24,7 @@ export interface Activity {
   flightNumber?: string;
   driveTime?: string;
   participants?: string[];
+  cost?: number;
   createdAt: string;
 }
 
