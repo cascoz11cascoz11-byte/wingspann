@@ -2,6 +2,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 Deno.serve(async (req) => {
   const { token, type, tripName, activityName, userId } = await req.json();
+  console.log("Incoming request:", { token: token?.slice(0, 10) + "...", type, tripName, activityName, userId });
 
   const APNS_KEY_ID = Deno.env.get("APNS_KEY_ID")!;
   const APNS_TEAM_ID = Deno.env.get("APNS_TEAM_ID")!;
@@ -26,10 +27,14 @@ Deno.serve(async (req) => {
     if (userId) {
       const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
       const { data: unreadCount, error: countError } = await supabase.rpc("get_unread_count", { uid: userId });
+      console.log("Badge lookup result:", { unreadCount, countError });
       if (!countError && typeof unreadCount === "number") {
         badgeCount = unreadCount;
       }
+    } else {
+      console.log("No userId provided, defaulting badge to 1");
     }
+    console.log("Final badgeCount:", badgeCount);
 
     const pemContents = APNS_PRIVATE_KEY
       .replace("-----BEGIN PRIVATE KEY-----", "")
@@ -69,6 +74,15 @@ Deno.serve(async (req) => {
 
     const host = "https://api.push.apple.com";
 
+    const apnsBody = {
+      aps: {
+        alert: { title: message.title, body: message.body },
+        sound: "default",
+        badge: badgeCount,
+      },
+    };
+    console.log("Sending to APNs:", JSON.stringify(apnsBody));
+
     const response = await fetch(`${host}/3/device/${token}`, {
       method: "POST",
       headers: {
@@ -78,22 +92,19 @@ Deno.serve(async (req) => {
         "apns-priority": "10",
         "content-type": "application/json",
       },
-      body: JSON.stringify({
-        aps: {
-          alert: { title: message.title, body: message.body },
-          sound: "default",
-          badge: badgeCount,
-        },
-      }),
+      body: JSON.stringify(apnsBody),
     });
 
     const responseText = await response.text();
+    console.log("APNs response status:", response.status, responseText);
+
     if (!response.ok) {
       return new Response(JSON.stringify({ error: responseText }), { status: 500 });
     }
 
     return new Response(JSON.stringify({ success: true }), { status: 200 });
   } catch (e: any) {
+    console.error("send-push error:", e.message);
     return new Response(JSON.stringify({ error: e.message }), { status: 500 });
   }
 });
