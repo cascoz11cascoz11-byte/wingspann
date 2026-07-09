@@ -10,14 +10,14 @@ function getSupabase() {
   return createClient(url, key);
 }
 
-async function sendAPNSNotification(token: string, title: string, body: string) {
+async function sendAPNSNotification(token: string, userId: string, title: string, body: string) {
   await fetch("https://fycdopkefphgvzvqtccc.supabase.co/functions/v1/send-push", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
       "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
     },
-    body: JSON.stringify({ token, type: "activity", tripName: title, activityName: body, sandbox: false }),
+    body: JSON.stringify({ token, userId, type: "activity", tripName: title, activityName: body, sandbox: false }),
   });
 }
 
@@ -54,9 +54,11 @@ export async function POST(req: Request) {
       uniqueUserIds.map((userId) => ({ user_id: userId, type: "activity_added", title, body, link }))
     );
 
-    const { data: subs } = await supabase.from("push_tokens").select("token").in("user_id", uniqueUserIds);
+    const { data: subs } = await supabase.from("push_tokens").select("token, user_id").in("user_id", uniqueUserIds);
     if (subs && subs.length > 0) {
-      await Promise.all(subs.map((s: any) => s.token && sendAPNSNotification(s.token, title, body)));
+      await Promise.all(
+        subs.map((s: any) => s.token && sendAPNSNotification(s.token, s.user_id, title, body))
+      );
     }
 
     return NextResponse.json({ message: "Notified", count: uniqueUserIds.length });

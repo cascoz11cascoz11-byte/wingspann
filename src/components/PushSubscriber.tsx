@@ -22,9 +22,16 @@ export function PushSubscriber() {
       await PushNotifications.register();
     }
 
-    // Clear badge whenever the page becomes visible
-    function clearBadge() {
-      PushNotifications.removeAllDeliveredNotifications();
+    // Clear badge whenever the page becomes visible, and mark notifications as read
+    async function clearBadge() {
+      await PushNotifications.removeAllDeliveredNotifications();
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+      await supabase
+        .from("notifications")
+        .update({ read: true })
+        .eq("user_id", user.id)
+        .eq("read", false);
     }
 
     document.addEventListener("visibilitychange", () => {
@@ -51,12 +58,12 @@ export function PushSubscriber() {
 
     const notifSub = PushNotifications.addListener("pushNotificationReceived", () => {
       // App is open — clear badge immediately
-      PushNotifications.removeAllDeliveredNotifications();
+      clearBadge();
     });
 
     const actionSub = PushNotifications.addListener("pushNotificationActionPerformed", () => {
       // User tapped notification — clear badge
-      PushNotifications.removeAllDeliveredNotifications();
+      clearBadge();
     });
 
     registerPush();

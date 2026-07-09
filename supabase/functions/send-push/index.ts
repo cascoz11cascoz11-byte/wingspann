@@ -1,10 +1,15 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+
 Deno.serve(async (req) => {
-  const { token, type, tripName, activityName } = await req.json();
+  const { token, type, tripName, activityName, userId } = await req.json();
 
   const APNS_KEY_ID = Deno.env.get("APNS_KEY_ID")!;
   const APNS_TEAM_ID = Deno.env.get("APNS_TEAM_ID")!;
   const APNS_BUNDLE_ID = Deno.env.get("APNS_BUNDLE_ID")!;
   const APNS_PRIVATE_KEY = Deno.env.get("APNS_PRIVATE_KEY")!.replace(/\\n/g, "\n");
+
+  const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
+  const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
   const messages: Record<string, { title: string; body: string }> = {
     invite: { title: "You've been invited! ✈️", body: `You were invited to join ${tripName}` },
@@ -16,6 +21,16 @@ Deno.serve(async (req) => {
   if (!message) return new Response(JSON.stringify({ error: "Invalid type" }), { status: 400 });
 
   try {
+    // Look up how many unread notifications this user has, for the badge count
+    let badgeCount = 1;
+    if (userId) {
+      const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+      const { data: unreadCount, error: countError } = await supabase.rpc("get_unread_count", { uid: userId });
+      if (!countError && typeof unreadCount === "number") {
+        badgeCount = unreadCount;
+      }
+    }
+
     const pemContents = APNS_PRIVATE_KEY
       .replace("-----BEGIN PRIVATE KEY-----", "")
       .replace("-----END PRIVATE KEY-----", "")
@@ -67,7 +82,7 @@ Deno.serve(async (req) => {
         aps: {
           alert: { title: message.title, body: message.body },
           sound: "default",
-        
+          badge: badgeCount,
         },
       }),
     });
